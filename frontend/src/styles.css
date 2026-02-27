@@ -1,0 +1,376 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #f5f8f2;
+  --surface: #ffffff;
+  --surface-2: #e6efe1;
+  --ink: #142013;
+  --muted: #415b3f;
+  --accent: #e86a2f;
+  --accent-dark: #b84a19;
+  --border: #bfd0b8;
+  --danger: #b0291f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 10% 0%, #ffe0cb 0, #ffe0cb44 16%, transparent 45%),
+    radial-gradient(circle at 90% 100%, #d4e8cc 0, #d4e8cc55 14%, transparent 42%),
+    var(--bg);
+}
+
+a {
+  color: inherit;
+}
+
+.app-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  position: sticky;
+  top: 0.6rem;
+  z-index: 3;
+  backdrop-filter: blur(8px);
+}
+
+.top-nav .brand {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+}
+
+.top-nav div {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.top-nav a {
+  text-decoration: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+}
+
+.top-nav a.active {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+
+.page-wrap {
+  padding: 1rem 0;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.hero-side {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
+}
+
+.overline {
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.weather-chip {
+  background: linear-gradient(135deg, #eff8e9, #fff8ec);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+  display: grid;
+  min-width: 220px;
+}
+
+.weather-chip strong {
+  font-size: 1.05rem;
+}
+
+.birthday-blob {
+  background: linear-gradient(135deg, #fff9eb, #edf7ff);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+  display: grid;
+  gap: 0.5rem;
+  min-width: 220px;
+}
+
+.birthday-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.birthday-pill {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  color: white;
+}
+
+.cards-grid {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.strike-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+
+.strike-filter {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.strike-filter.active {
+  background: var(--surface-2);
+  border-color: #93b78e;
+}
+
+.story-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.6rem;
+  box-shadow: 0 10px 26px #4d5d4a12;
+}
+
+.story-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.source-pill,
+.score-pill {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+  font-size: 0.71rem;
+  border-radius: 999px;
+  padding: 0.26rem 0.58rem;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.source-pill {
+  min-width: 0;
+  max-width: 100%;
+  justify-self: start;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-pill {
+  justify-self: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.story-card h3 {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.story-card ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.plain-summary {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.plain-summary p {
+  margin: 0;
+}
+
+.story-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.story-actions .btn {
+  width: fit-content;
+}
+
+.story-actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+  white-space: nowrap;
+  align-self: flex-start;
+  width: max-content;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.42rem 0.72rem;
+  border-radius: 12px;
+}
+
+.story-card.strike-card .story-actions {
+  justify-content: flex-start;
+}
+
+.sources-list {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.2rem;
+  border-top: 1px dashed var(--border);
+}
+
+.sources-list a {
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.sources-grid {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.archive-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.archive-item {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 0.45rem 0.65rem;
+  display: grid;
+  text-align: left;
+  cursor: pointer;
+}
+
+.archive-item span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.source-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  align-items: center;
+  background: var(--surface);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 0.8rem;
+}
+
+.source-row p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.error-box {
+  color: var(--danger);
+  border: 1px solid #f1c0bc;
+  background: #fff3f2;
+  padding: 0.6rem;
+  border-radius: 12px;
+}
+
+.status-box {
+  color: #22411f;
+  border: 1px solid #b8d2af;
+  background: #eff9ec;
+  padding: 0.6rem;
+  border-radius: 12px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .source-row {
+    grid-template-columns: 1fr;
+  }
+}
