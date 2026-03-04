@@ -58,8 +58,16 @@ VITE_BACKEND_URL=http://localhost:8000
 ## Notes
 
 - Summaries are generated from titles/snippets only.
-- If LLM fails, fallback summary is stored: `(Περίληψη μη διαθέσιμη ακόμη)`.
+- If LLM fails, no summary text is shown.
+- "Με μια ματιά" daily summary is generated from top stories and returned as `top_summary_md`.
 - By default, today briefing is auto-generated on first request if it doesn't exist yet.
+- Optional Gemini setup for LLM:
+  - `LLM_PROVIDER=gemini`
+  - `GEMINI_API_KEY=...`
+  - `LLM_MODEL=gemini-2.0-flash` (or another available Gemini model)
+  - Optional fallback when Gemini has no response:
+    - `GROQ_API_KEY=...`
+    - `GROQ_FALLBACK_MODEL=openai/gpt-oss-120b`
 - Weather uses Open-Meteo. If your network injects TLS certificates, set either:
   - `WEATHER_CA_BUNDLE=/path/to/root-ca.pem` (recommended)
   - or `WEATHER_SSL_VERIFY=false` (insecure)

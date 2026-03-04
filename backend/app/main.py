@@ -176,6 +176,7 @@ async def patch_source(
 @app.post("/api/admin/run-ingestion")
 async def run_ingestion(session: AsyncSession = Depends(get_session)) -> dict:
     result = await ingestion_service.run(session)
+    await briefing_service.generate(session=session, settings=settings)
     return {
         "status": "ok",
         "fetched": result.fetched,
@@ -223,7 +224,17 @@ async def get_today_briefing(session: AsyncSession = Depends(get_session)) -> di
             session.add(briefing_row)
             await session.commit()
             payload["weather"] = latest_weather
-    return payload or {"day": str(today), "weather": None, "birthdays": None, "top_stories": [], "strikes": []}
+    return (
+        payload
+        or {
+            "day": str(today),
+            "weather": None,
+            "birthdays": None,
+            "top_summary_md": None,
+            "top_stories": [],
+            "strikes": [],
+        }
+    )
 
 
 @app.get("/api/briefings")

@@ -1,7 +1,54 @@
 import { useEffect, useMemo, useState } from 'react';
 import ClusterCard from '../components/ClusterCard';
 import { generateBriefing, getTodayBriefing, listArticles, listSources, runIngestion } from '../api';
-import { ArticleItem, Briefing } from '../types';
+import { ArticleItem, Briefing, WeatherForecastDay } from '../types';
+
+function formatDayMonthYear(dateValue: string): string {
+  const [year, month, day] = dateValue.split('-');
+  if (!year || !month || !day || year.length !== 4) {
+    return dateValue;
+  }
+  return `${day}-${month}-${year}`;
+}
+
+function formatShortWeekday(dateValue: string): string {
+  const parsed = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return dateValue;
+  }
+  return new Intl.DateTimeFormat('el-GR', { weekday: 'short' }).format(parsed).replace('.', '');
+}
+
+function weatherIconForCode(code?: number | null): string {
+  if (code === undefined || code === null) {
+    return '🌤️';
+  }
+  if (code === 0) {
+    return '☀️';
+  }
+  if (code <= 2) {
+    return '🌤️';
+  }
+  if (code === 3) {
+    return '☁️';
+  }
+  if (code === 45 || code === 48) {
+    return '🌫️';
+  }
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+    return '🌧️';
+  }
+  if (code >= 71 && code <= 77) {
+    return '❄️';
+  }
+  if (code === 85 || code === 86) {
+    return '🌨️';
+  }
+  if (code >= 95) {
+    return '⛈️';
+  }
+  return '🌥️';
+}
 
 export default function TodayPage() {
   const ALL_PAPERS_LABEL = 'Όλες';
@@ -16,6 +63,7 @@ export default function TodayPage() {
   const [sourceArticlesLoading, setSourceArticlesLoading] = useState(false);
   const [sourceArticlesError, setSourceArticlesError] = useState<string | null>(null);
   const [topFilterSources, setTopFilterSources] = useState<string[]>([]);
+  const [weatherExpanded, setWeatherExpanded] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -95,6 +143,26 @@ export default function TodayPage() {
 
   const weather = briefing?.weather;
   const birthdays = briefing?.birthdays;
+  const displayDate = formatDayMonthYear(briefing?.day ?? new Date().toISOString().slice(0, 10));
+  const forecastDays: WeatherForecastDay[] = useMemo(() => {
+    const forecast = weather?.forecast ?? [];
+    if (forecast.length > 1) {
+      return forecast.slice(1, 4);
+    }
+    return forecast.slice(0, 3);
+  }, [weather]);
+  const canExpandWeather = forecastDays.length > 0;
+  const topSummaryParagraphs = useMemo(() => {
+    const raw = briefing?.top_summary_md?.trim();
+    if (!raw) {
+      return [];
+    }
+    return raw
+      .split(/\n\s*\n+/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .slice(0, 3);
+  }, [briefing]);
   const topSources = useMemo(() => {
     if (topFilterSources.length > 0) {
       return topFilterSources;
@@ -187,11 +255,11 @@ export default function TodayPage() {
         <div>
           <p className="overline">Προσωπικό Daily Digest</p>
           <h1>Καλημέρα!</h1>
-          <p>{briefing?.day || new Date().toISOString().slice(0, 10)}</p>
+          <p>{displayDate}</p>
         </div>
 
         <div className="hero-side">
-          <div className="weather-chip">
+          <div className={`weather-chip ${weatherExpanded ? 'expanded' : ''}`}>
             {weather?.unavailable ? (
               <>
                 <span>Καιρός μη διαθέσιμος</span>
@@ -199,15 +267,53 @@ export default function TodayPage() {
               </>
             ) : (
               <>
-                <strong>{weather?.city || 'Καιρός'}</strong>
-                <span>
-                  Τώρα: {weather?.current_temperature ?? '-'}°{weather?.current_condition ? ` • ${weather.current_condition}` : ''}
-                </span>
-                <span>
-                  {weather?.temperature_min ?? '-'}° / {weather?.temperature_max ?? '-'}°
-                </span>
-                <small>Βροχή {weather?.precipitation_probability ?? '-'}% • Άνεμος {weather?.wind_speed ?? '-'} km/h</small>
-                {weather?.tls_warning && <small>{weather.tls_warning}</small>}
+                <button
+                  className="weather-chip-toggle"
+                  type="button"
+                  onClick={() => {
+                    if (canExpandWeather) {
+                      setWeatherExpanded((prev) => !prev);
+                    }
+                  }}
+                  aria-expanded={weatherExpanded}
+                  aria-label="Εμφάνιση πρόγνωσης επόμενων ημερών"
+                >
+                  <span className="weather-main-icon" aria-hidden="true">
+                    {weatherIconForCode(weather?.current_weather_code)}
+                  </span>
+                  <span className="weather-main-content">
+                    <strong>{weather?.city || 'Καιρός'}</strong>
+                    <span>
+                      Τώρα: {weather?.current_temperature ?? '-'}°
+                      {weather?.current_condition ? ` • ${weather.current_condition}` : ''}
+                    </span>
+                    <span>
+                      {weather?.temperature_min ?? '-'}° / {weather?.temperature_max ?? '-'}°
+                    </span>
+                    <small>Βροχή {weather?.precipitation_probability ?? '-'}% • Άνεμος {weather?.wind_speed ?? '-'} km/h</small>
+                    {weather?.tls_warning && <small>{weather.tls_warning}</small>}
+                  </span>
+                  {canExpandWeather && (
+                    <span className={`weather-expand-indicator ${weatherExpanded ? 'open' : ''}`} aria-hidden="true">
+                      ▾
+                    </span>
+                  )}
+                </button>
+                {weatherExpanded && canExpandWeather && (
+                  <div className="weather-forecast">
+                    {forecastDays.map((forecast) => (
+                      <div key={forecast.day} className="weather-forecast-day">
+                        <span className="weather-forecast-label">{formatShortWeekday(forecast.day)}</span>
+                        <span className="weather-forecast-icon" aria-hidden="true">
+                          {weatherIconForCode(forecast.weather_code)}
+                        </span>
+                        <span className="weather-forecast-temp">
+                          {forecast.temperature_max ?? '-'}° <small>{forecast.temperature_min ?? '-'}°</small>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -253,7 +359,14 @@ export default function TodayPage() {
       {!loading && !error && briefing && (
         <>
           <section>
-            <h2>Top 15</h2>
+            <h2>Με μια ματιά</h2>
+            {topSummaryParagraphs.length > 0 && (
+              <div className="top-summary-box">
+                {topSummaryParagraphs.map((paragraph, idx) => (
+                  <p key={`top-summary-${idx}`}>{paragraph}</p>
+                ))}
+              </div>
+            )}
             {topSources.length > 0 && (
               <div className="strike-filters">
                 <button

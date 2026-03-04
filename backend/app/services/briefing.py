@@ -13,6 +13,7 @@ from app.services.birthdays import BirthdaysService
 from app.services.dedupe import build_daily_clusters
 from app.services.ranking import rank_clusters
 from app.services.strike_feed import StrikeFeedService
+from app.services.summarizer import ensure_daily_top_summary, fetch_daily_top_summary
 from app.services.weather import WeatherService
 
 
@@ -47,6 +48,14 @@ class BriefingService:
             session.add(cluster)
         await session.commit()
 
+        await ensure_daily_top_summary(
+            session=session,
+            settings=settings,
+            day=day,
+            clusters=ranking.ordered_clusters,
+            articles_by_cluster_id=cluster_result.articles_by_cluster_id,
+        )
+
         weather_json = await self.weather_service.fetch_today(settings, day)
 
         briefing = (await session.execute(select(Briefing).where(Briefing.day == day))).scalars().first()
@@ -73,6 +82,9 @@ class BriefingService:
             return None
 
         top_items = await self._serialize_clusters(session, settings, briefing.top_cluster_ids)
+        top_summary = await fetch_daily_top_summary(session, day)
+        if top_summary is None and briefing.top_cluster_ids:
+            top_summary = await self._backfill_top_summary(session, settings, day, briefing.top_cluster_ids)
         strike_items = await self._live_strike_items(settings=settings, day=day)
         birthdays_json = await self.birthdays_service.fetch_today(settings, day)
 
@@ -82,9 +94,41 @@ class BriefingService:
             "created_at": briefing.created_at.isoformat() if briefing.created_at else None,
             "weather": briefing.weather_json,
             "birthdays": birthdays_json,
+            "top_summary_md": top_summary.summary_md if top_summary else None,
             "top_stories": top_items,
             "strikes": strike_items,
         }
+
+    async def _backfill_top_summary(
+        self,
+        session: AsyncSession,
+        settings: Settings,
+        day: date,
+        cluster_ids: list[str],
+    ):
+        stmt = (
+            select(Cluster)
+            .options(
+                selectinload(Cluster.cluster_articles)
+                .selectinload(ClusterArticle.article)
+                .selectinload(Article.source),
+            )
+            .where(Cluster.id.in_(cluster_ids))
+        )
+        rows = list((await session.execute(stmt)).scalars().all())
+        by_id = {row.id: row for row in rows}
+        ordered_clusters = [by_id[cluster_id] for cluster_id in cluster_ids if cluster_id in by_id]
+        articles_by_cluster_id = {
+            cluster.id: [ca.article for ca in cluster.cluster_articles if ca.article] for cluster in ordered_clusters
+        }
+
+        return await ensure_daily_top_summary(
+            session=session,
+            settings=settings,
+            day=day,
+            clusters=ordered_clusters,
+            articles_by_cluster_id=articles_by_cluster_id,
+        )
 
     async def _serialize_clusters(self, session: AsyncSession, settings: Settings, cluster_ids: list[str]) -> list[dict]:
         if not cluster_ids:

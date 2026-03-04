@@ -9,3 +9,4 @@ backend/*.db
 .env
 backend/.env
 frontend/dist/
+playground/venv/

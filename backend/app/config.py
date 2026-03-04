@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     anthropic_base_url: str = "https://api.anthropic.com"
     ollama_base_url: str = "http://localhost:11434"
+    gemini_api_key: str | None = None
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    groq_api_key: str | None = None
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_fallback_model: str = "openai/gpt-oss-120b"
+    groq_reasoning_effort: str = "medium"
 
     weather_lat: float = 37.9838
     weather_lon: float = 23.7275

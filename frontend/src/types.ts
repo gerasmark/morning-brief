@@ -6,6 +6,16 @@ export type ClusterSource = {
   published_at: string | null;
 };
 
+export type WeatherForecastDay = {
+  day: string;
+  temperature_min?: number;
+  temperature_max?: number;
+  precipitation_probability?: number;
+  wind_speed?: number;
+  weather_code?: number | null;
+  condition?: string;
+};
+
 export type ClusterCardData = {
   id: string;
   score: number;
@@ -22,6 +32,7 @@ export type Briefing = {
   id?: string;
   day: string;
   created_at?: string;
+  top_summary_md?: string | null;
   weather: {
     city?: string;
     day?: string;
@@ -33,12 +44,13 @@ export type Briefing = {
     current_apparent_temperature?: number;
     current_precipitation?: number;
     current_wind_speed?: number;
-    current_weather_code?: number;
+    current_weather_code?: number | null;
     current_condition?: string;
     observed_at?: string;
     error?: string;
     provider?: string;
     tls_warning?: string | null;
+    forecast?: WeatherForecastDay[];
     unavailable?: boolean;
   } | null;
   birthdays: {

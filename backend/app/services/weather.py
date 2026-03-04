@@ -42,9 +42,9 @@ class WeatherService:
         base_params = {
             "latitude": settings.weather_lat,
             "longitude": settings.weather_lon,
-            "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max",
+            "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,weather_code",
             "timezone": settings.timezone,
-            "forecast_days": 2,
+            "forecast_days": 4,
         }
         url = "https://api.open-meteo.com/v1/forecast"
         payload: dict[str, Any] | None = None
@@ -109,6 +109,7 @@ class WeatherService:
 
         weather_code = current.get("weather_code", current.get("weathercode"))
         weather_label = WEATHER_CODE_LABELS.get(weather_code, "Άγνωστη κατάσταση")
+        forecast = _build_forecast(daily, idx, 4)
 
         return {
             "provider": "open-meteo",
@@ -125,6 +126,7 @@ class WeatherService:
             "current_weather_code": weather_code,
             "current_condition": weather_label,
             "observed_at": current.get("time"),
+            "forecast": forecast,
             "tls_warning": tls_warning,
             "alerts": [],
         }
@@ -134,6 +136,35 @@ def _pick(values: list, idx: int):
     if idx < len(values):
         return values[idx]
     return None
+
+
+def _build_forecast(daily: dict[str, Any], start_idx: int, days: int) -> list[dict[str, Any]]:
+    forecast: list[dict[str, Any]] = []
+    times = daily.get("time", [])
+    max_values = daily.get("temperature_2m_max", [])
+    min_values = daily.get("temperature_2m_min", [])
+    precipitation_values = daily.get("precipitation_probability_max", [])
+    wind_values = daily.get("wind_speed_10m_max", [])
+    weather_codes = daily.get("weather_code", [])
+
+    for offset in range(days):
+        idx = start_idx + offset
+        day_value = _pick(times, idx)
+        if day_value is None:
+            continue
+        weather_code = _pick(weather_codes, idx)
+        forecast.append(
+            {
+                "day": day_value,
+                "temperature_min": _pick(min_values, idx),
+                "temperature_max": _pick(max_values, idx),
+                "precipitation_probability": _pick(precipitation_values, idx),
+                "wind_speed": _pick(wind_values, idx),
+                "weather_code": weather_code,
+                "condition": WEATHER_CODE_LABELS.get(weather_code, "Άγνωστη κατάσταση"),
+            }
+        )
+    return forecast
 
 
 async def _fetch_payload(client: httpx.AsyncClient, url: str, params: dict[str, Any]) -> dict[str, Any]:

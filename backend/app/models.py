@@ -102,6 +102,17 @@ class Summary(Base):
     cluster: Mapped[Cluster] = relationship("Cluster", back_populates="summaries")
 
 
+class DailyTopSummary(Base):
+    __tablename__ = "daily_top_summaries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    day: Mapped[date] = mapped_column(Date, nullable=False, unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(120), nullable=False)
+    model: Mapped[str] = mapped_column(String(120), nullable=False)
+    summary_md: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+
 class Briefing(Base):
     __tablename__ = "briefings"
 
