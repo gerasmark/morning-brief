@@ -362,6 +362,7 @@ export default function TodayPage() {
             <h2>Με μια ματιά</h2>
             {topSummaryParagraphs.length > 0 && (
               <div className="top-summary-box">
+                <p className="top-summary-kicker">Σύνοψη Ημέρας</p>
                 {topSummaryParagraphs.map((paragraph, idx) => (
                   <p key={`top-summary-${idx}`}>{paragraph}</p>
                 ))}
