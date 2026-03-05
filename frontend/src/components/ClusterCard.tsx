@@ -1,11 +1,12 @@
 import type { MouseEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { ClusterCardData } from '../types';
+import { formatGreekDateTime, formatRelativeGreekTime } from '../time';
+import SourceIcon from './SourceIcon';
 
 type Props = {
   item: ClusterCardData;
   summaryMode?: 'list' | 'plain' | 'hidden';
-  showScore?: boolean;
   showSourcesToggle?: boolean;
   variant?: 'default' | 'strike';
 };
@@ -20,12 +21,32 @@ function summaryLines(summary: string): string[] {
 export default function ClusterCard({
   item,
   summaryMode = 'hidden',
-  showScore = true,
   showSourcesToggle = false,
   variant = 'default',
 }: Props) {
   const [open, setOpen] = useState(false);
   const lines = useMemo(() => summaryLines(item.summary_md), [item.summary_md]);
+  const latestPublishedAt = useMemo(() => {
+    let latestIso: string | null = null;
+    let latestMs = -Infinity;
+    for (const source of item.sources) {
+      if (!source.published_at) {
+        continue;
+      }
+      const parsed = new Date(source.published_at);
+      const parsedMs = parsed.getTime();
+      if (Number.isNaN(parsedMs)) {
+        continue;
+      }
+      if (parsedMs > latestMs) {
+        latestMs = parsedMs;
+        latestIso = source.published_at;
+      }
+    }
+    return latestIso;
+  }, [item.sources]);
+  const relativePublished = useMemo(() => formatRelativeGreekTime(latestPublishedAt), [latestPublishedAt]);
+  const exactPublished = useMemo(() => formatGreekDateTime(latestPublishedAt), [latestPublishedAt]);
   const handleDoubleClick = (event: MouseEvent<HTMLElement>) => {
     const target = event.target as HTMLElement | null;
     if (target?.closest('a, button, input, textarea, select, label')) {
@@ -41,8 +62,15 @@ export default function ClusterCard({
       title="Διπλό κλικ για άνοιγμα άρθρου"
     >
       <div className="story-head">
-        <span className="source-pill" title={item.source}>{item.source}</span>
-        {showScore && <span className="score-pill">Score {item.score.toFixed(2)}</span>}
+        <span className="source-pill" title={item.source}>
+          <SourceIcon source={item.source} />
+          <span className="source-name">{item.source}</span>
+        </span>
+        {relativePublished && (
+          <span className="time-pill" title={exactPublished || undefined}>
+            {relativePublished}
+          </span>
+        )}
       </div>
 
       <h3>{item.title}</h3>
@@ -73,7 +101,11 @@ export default function ClusterCard({
         <div className="sources-list">
           {item.sources.map((source) => (
             <a key={source.article_id} href={source.url} target="_blank" rel="noreferrer">
-              <strong>{source.source}</strong>: {source.title}
+              <span className="source-inline">
+                <SourceIcon source={source.source} />
+                <strong>{source.source}</strong>
+              </span>
+              : {source.title}
             </a>
           ))}
         </div>

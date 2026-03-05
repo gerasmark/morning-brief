@@ -60,6 +60,7 @@ VITE_BACKEND_URL=http://localhost:8000
 - Summaries are generated from titles/snippets only.
 - If LLM fails, no summary text is shown.
 - "Με μια ματιά" daily summary is generated from top stories and returned as `top_summary_md`.
+- "Απεργίες / Μετακινήσεις" summary bullets are generated from strike feed items and returned as `strike_summary_md`.
 - By default, today briefing is auto-generated on first request if it doesn't exist yet.
 - Optional Gemini setup for LLM:
   - `LLM_PROVIDER=gemini`

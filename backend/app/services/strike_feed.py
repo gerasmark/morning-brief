@@ -440,6 +440,8 @@ class StrikeFeedService:
             "title": item.title,
             "url": item.url,
             "source": item.source,
+            "snippet": item.snippet,
+            "published_at": item.published_at.isoformat() if item.published_at else None,
             "topics": ["Απεργίες", "Μετακινήσεις"],
             "is_strike_related": True,
             "summary_md": "",

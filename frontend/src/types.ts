@@ -33,6 +33,7 @@ export type Briefing = {
   day: string;
   created_at?: string;
   top_summary_md?: string | null;
+  strike_summary_md?: string | null;
   weather: {
     city?: string;
     day?: string;
@@ -58,6 +59,15 @@ export type Briefing = {
     day?: string;
     source_url?: string;
     names: string[];
+    unavailable?: boolean;
+    error?: string | null;
+  } | null;
+  quote_of_day: {
+    provider?: string;
+    day?: string;
+    source_url?: string;
+    quote?: string | null;
+    author?: string | null;
     unavailable?: boolean;
     error?: string | null;
   } | null;

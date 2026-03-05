@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime
 
@@ -16,6 +17,18 @@ from app.seed_sources import seed as seed_sources
 from app.services.briefing import BriefingService, get_cluster_detail
 from app.services.ingestion import IngestionService
 from app.services.scheduler import SchedulerService
+
+
+def _configure_logging() -> None:
+    if not logging.getLogger().handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        )
+    logging.getLogger("app").setLevel(logging.INFO)
+
+
+_configure_logging()
 
 settings = get_settings()
 briefing_service = BriefingService()
@@ -230,7 +243,9 @@ async def get_today_briefing(session: AsyncSession = Depends(get_session)) -> di
             "day": str(today),
             "weather": None,
             "birthdays": None,
+            "quote_of_day": None,
             "top_summary_md": None,
+            "strike_summary_md": None,
             "top_stories": [],
             "strikes": [],
         }

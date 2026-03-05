@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import re
 from datetime import date
@@ -11,13 +12,17 @@ from sqlalchemy.orm import selectinload
 from app.config import Settings
 from app.llm.router import get_provider
 from app.llm.providers.groq_provider import GroqProvider
-from app.models import Article, Cluster, ClusterArticle, DailyTopSummary, Summary
+from app.models import Article, Cluster, ClusterArticle, DailyStrikeSummary, DailyTopSummary, Summary
 
 SYSTEM_PROMPT = "Είσαι συντάκτης πρωινής ενημέρωσης. Γράφεις σύντομα, ουδέτερα, χωρίς υπερβολές."
 DAILY_TOP_SYSTEM_PROMPT = (
     "Είσαι έμπειρος συντάκτης πρωινής ενημέρωσης. "
     "Γράφεις σύντομη, καθαρή και ουδέτερη σύνοψη στα Ελληνικά, που διαβάζεται φυσικά και ευχάριστα. "
     "Χρησιμοποίησε πλήρεις προτάσεις με ομαλή ροή, χωρίς bullets και χωρίς το σύμβολο ';'."
+)
+DAILY_STRIKE_SYSTEM_PROMPT = (
+    "Είσαι συντάκτης για ενότητα απεργιών/μετακινήσεων. "
+    "Γράφεις καθαρές, σύντομες κουκκίδες στα Ελληνικά με πρακτικό τόνο."
 )
 GEMINI_PROVIDER_ALIASES = {"gemini", "google"}
 logger = logging.getLogger(__name__)
@@ -47,7 +52,7 @@ async def ensure_cluster_summary(
         settings=settings,
         messages=messages,
         temperature=0.2,
-        max_tokens=1000,
+        max_tokens=450,
     )
     if summary_md:
         logger.info(
@@ -123,7 +128,7 @@ async def ensure_daily_top_summary(
             settings=settings,
             messages=messages,
             temperature=0.2,
-            max_tokens=1000,
+            max_tokens=700,
         )
         normalized = _normalize_daily_top_summary(generated)
         if normalized:
@@ -170,6 +175,79 @@ async def ensure_daily_top_summary(
 
 async def fetch_daily_top_summary(session: AsyncSession, day: date) -> DailyTopSummary | None:
     stmt = select(DailyTopSummary).where(DailyTopSummary.day == day)
+    return (await session.execute(stmt)).scalars().first()
+
+
+async def ensure_daily_strike_summary(
+    session: AsyncSession,
+    settings: Settings,
+    day: date,
+    strike_items: list[dict],
+) -> DailyStrikeSummary:
+    existing = (await session.execute(select(DailyStrikeSummary).where(DailyStrikeSummary.day == day))).scalars().first()
+
+    summary_md = ""
+    if strike_items:
+        logger.info(
+            "Strike summary generation start day=%s items=%d provider=%s model=%s",
+            day,
+            len(strike_items),
+            settings.llm_provider,
+            settings.llm_model,
+        )
+        messages = _build_daily_strike_messages(strike_items)
+        generated = await _generate_with_gemini_fallback(
+            settings=settings,
+            messages=messages,
+            temperature=0.15,
+            max_tokens=600,
+        )
+        normalized = _normalize_daily_strike_summary(generated)
+        if normalized:
+            summary_md = normalized
+            logger.info(
+                "Strike summary generated day=%s provider=%s model=%s bullets=%d chars=%d",
+                day,
+                settings.llm_provider,
+                settings.llm_model,
+                len([line for line in summary_md.splitlines() if line.strip().startswith("- ")]),
+                len(summary_md),
+            )
+        else:
+            logger.warning(
+                "Strike summary empty after normalization day=%s provider=%s model=%s",
+                day,
+                settings.llm_provider,
+                settings.llm_model,
+            )
+    else:
+        logger.warning("Strike summary skipped day=%s reason=no_items", day)
+
+    if existing is not None:
+        existing.provider = settings.llm_provider
+        existing.model = settings.llm_model
+        existing.summary_md = summary_md
+        session.add(existing)
+        await session.commit()
+        await session.refresh(existing)
+        logger.info("Strike summary updated day=%s chars=%d", day, len(summary_md))
+        return existing
+
+    created = DailyStrikeSummary(
+        day=day,
+        provider=settings.llm_provider,
+        model=settings.llm_model,
+        summary_md=summary_md,
+    )
+    session.add(created)
+    await session.commit()
+    await session.refresh(created)
+    logger.info("Strike summary created day=%s chars=%d", day, len(summary_md))
+    return created
+
+
+async def fetch_daily_strike_summary(session: AsyncSession, day: date) -> DailyStrikeSummary | None:
+    stmt = select(DailyStrikeSummary).where(DailyStrikeSummary.day == day)
     return (await session.execute(stmt)).scalars().first()
 
 
@@ -240,6 +318,52 @@ def _build_daily_top_messages(clusters: list[Cluster], articles_by_cluster_id: d
     ]
 
 
+def _build_daily_strike_messages(strike_items: list[dict]) -> list[dict]:
+    payload: list[dict] = []
+    for idx, item in enumerate(strike_items[:24], start=1):
+        source_rows = item.get("sources", [])
+        source_titles: list[str] = []
+        if isinstance(source_rows, list):
+            for source_row in source_rows[:3]:
+                if not isinstance(source_row, dict):
+                    continue
+                source_title = str(source_row.get("title", "")).strip()
+                if source_title:
+                    source_titles.append(source_title)
+
+        published_at = str(item.get("published_at") or "").strip() or None
+        if not published_at and isinstance(source_rows, list) and source_rows:
+            first_source = source_rows[0] if isinstance(source_rows[0], dict) else {}
+            published_at = first_source.get("published_at") if isinstance(first_source, dict) else None
+
+        payload.append(
+            {
+                "index": idx,
+                "source": str(item.get("source", "")).strip(),
+                "title": str(item.get("title", "")).strip(),
+                "snippet": str(item.get("snippet", "")).strip() or None,
+                "url": str(item.get("url", "")).strip(),
+                "published_at": published_at,
+                "related_titles": source_titles,
+            }
+        )
+
+    user_prompt = (
+        "Παρακάτω έχεις τα 24 βασικά θέματα για απεργίες/μετακινήσεις.\n\n"
+        "Ζητούμενο:\n"
+        "- Γράψε 4 έως 8 bullets στα Ελληνικά.\n"
+        "- Κάθε γραμμή να ξεκινά με '- '.\n"
+        "- Κράτα πρακτικό ύφος με έμφαση σε μέσο, ημέρα/ώρα και επιπτώσεις όταν προκύπτουν.\n"
+        "- Απόφυγε επανάληψη ίδιων πληροφοριών.\n"
+        "- Μην προσθέτεις τίποτα που δεν υπάρχει στα δεδομένα.\n\n"
+        f"Δεδομένα:\n{json.dumps(payload, ensure_ascii=False)}"
+    )
+    return [
+        {"role": "system", "content": DAILY_STRIKE_SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
+
+
 def _normalize_daily_top_summary(raw_summary: str) -> str:
     text = raw_summary.replace("\r\n", "\n").strip()
     if not text:
@@ -258,6 +382,40 @@ def _normalize_daily_top_summary(raw_summary: str) -> str:
 
     cleaned_paragraphs = [re.sub(r"^[-*]\s*", "", paragraph) for paragraph in paragraphs]
     return "\n\n".join(cleaned_paragraphs[:3]).strip()
+
+
+def _normalize_daily_strike_summary(raw_summary: str) -> str:
+    text = raw_summary.replace("\r\n", "\n").strip()
+    if not text:
+        return ""
+
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text).strip()
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    bullets: list[str] = []
+    for line in lines:
+        cleaned = re.sub(r"^[-*•]\s*", "", line)
+        cleaned = re.sub(r"^\d+[\).\s-]*", "", cleaned).strip()
+        if not cleaned:
+            continue
+        bullets.append(f"- {cleaned}")
+        if len(bullets) >= 8:
+            break
+
+    if bullets:
+        return "\n".join(bullets)
+
+    paragraphs = [chunk.strip() for chunk in re.split(r"\n\s*\n+", text) if chunk.strip()]
+    if not paragraphs:
+        return ""
+    normalized = []
+    for paragraph in paragraphs[:6]:
+        cleaned = re.sub(r"^[-*]\s*", "", paragraph).strip()
+        if cleaned:
+            normalized.append(f"- {cleaned}")
+    return "\n".join(normalized)
 
 
 async def _generate_with_gemini_fallback(

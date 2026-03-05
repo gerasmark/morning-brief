@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     weather_allow_insecure_fallback: bool = False
     birthdays_source_url: str = "https://www.eortologio.net/"
     birthdays_names_limit: int = 16
+    quote_of_day_source_url: str = "https://www.lexigram.gr/ellinognosia/ImerasParoimia.php"
     strike_tag_urls: str = (
         "https://www.naftemporiki.gr/tag/apergia/,"
         "https://www.newsbomb.gr/tag/apergia,"

@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import ClusterCard from '../components/ClusterCard';
+import SourceIcon from '../components/SourceIcon';
 import { generateBriefing, getTodayBriefing, listArticles, listSources, runIngestion } from '../api';
 import { ArticleItem, Briefing, WeatherForecastDay } from '../types';
+import { formatGreekDateTime, formatRelativeGreekTime } from '../time';
 
 function formatDayMonthYear(dateValue: string): string {
-  const [year, month, day] = dateValue.split('-');
-  if (!year || !month || !day || year.length !== 4) {
+  const parsed = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
     return dateValue;
   }
-  return `${day}-${month}-${year}`;
+  const rendered = new Intl.DateTimeFormat('el-GR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(parsed);
+  return rendered.charAt(0).toUpperCase() + rendered.slice(1);
 }
 
 function formatShortWeekday(dateValue: string): string {
@@ -50,6 +58,41 @@ function weatherIconForCode(code?: number | null): string {
   return '🌥️';
 }
 
+type TodayBriefingCache = {
+  day: string;
+  briefing: Briefing;
+};
+
+let todayBriefingCache: TodayBriefingCache | null = null;
+
+function currentAthensDay(): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Athens',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date());
+
+  let year = '';
+  let month = '';
+  let day = '';
+  for (const part of parts) {
+    if (part.type === 'year') {
+      year = part.value;
+    } else if (part.type === 'month') {
+      month = part.value;
+    } else if (part.type === 'day') {
+      day = part.value;
+    }
+  }
+
+  if (year && month && day) {
+    return `${year}-${month}-${day}`;
+  }
+
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function TodayPage() {
   const ALL_PAPERS_LABEL = 'Όλες';
   const [briefing, setBriefing] = useState<Briefing | null>(null);
@@ -65,11 +108,24 @@ export default function TodayPage() {
   const [topFilterSources, setTopFilterSources] = useState<string[]>([]);
   const [weatherExpanded, setWeatherExpanded] = useState(false);
 
-  const load = async () => {
+  const load = async ({ force = false }: { force?: boolean } = {}) => {
+    const athensDay = currentAthensDay();
+    if (todayBriefingCache && todayBriefingCache.day !== athensDay) {
+      todayBriefingCache = null;
+    }
+
+    if (!force && todayBriefingCache) {
+      setBriefing(todayBriefingCache.briefing);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const data = await getTodayBriefing();
+      todayBriefingCache = { day: data.day, briefing: data };
       setBriefing(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Αποτυχία φόρτωσης briefing');
@@ -118,7 +174,7 @@ export default function TodayPage() {
       } else {
         setStatusMessage(`Ingestion: fetched ${result.fetched}, inserted ${result.inserted}.`);
       }
-      await load();
+      await load({ force: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Αποτυχία ingestion');
     } finally {
@@ -133,7 +189,7 @@ export default function TodayPage() {
       const result = await generateBriefing();
       const topCount = result.briefing?.top_stories?.length ?? 0;
       setStatusMessage(`Briefing δημιουργήθηκε: ${topCount} θέματα.`);
-      await load();
+      await load({ force: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Αποτυχία δημιουργίας briefing');
     } finally {
@@ -143,6 +199,7 @@ export default function TodayPage() {
 
   const weather = briefing?.weather;
   const birthdays = briefing?.birthdays;
+  const quoteOfDay = briefing?.quote_of_day;
   const displayDate = formatDayMonthYear(briefing?.day ?? new Date().toISOString().slice(0, 10));
   const forecastDays: WeatherForecastDay[] = useMemo(() => {
     const forecast = weather?.forecast ?? [];
@@ -162,6 +219,19 @@ export default function TodayPage() {
       .map((paragraph) => paragraph.trim())
       .filter(Boolean)
       .slice(0, 3);
+  }, [briefing]);
+  const strikeSummaryBullets = useMemo(() => {
+    const raw = briefing?.strike_summary_md?.trim();
+    if (!raw) {
+      return [];
+    }
+    return raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/^[-*•]\s*/, '').trim())
+      .filter(Boolean)
+      .slice(0, 8);
   }, [briefing]);
   const topSources = useMemo(() => {
     if (topFilterSources.length > 0) {
@@ -254,7 +324,10 @@ export default function TodayPage() {
       <header className="hero">
         <div>
           <p className="overline">Προσωπικό Daily Digest</p>
-          <h1>Καλημέρα!</h1>
+          <h1 className="hero-greeting">
+            <span>Καλημέρα</span>
+            <em>!</em>
+          </h1>
           <p>{displayDate}</p>
         </div>
 
@@ -337,11 +410,28 @@ export default function TodayPage() {
               <span>Δεν βρέθηκαν ονόματα.</span>
             )}
           </div>
+
+          <div className="quote-blob">
+            <strong>Απόφθεγμα της Ημέρας</strong>
+            {quoteOfDay?.unavailable ? (
+              <>
+                <span>Μη διαθέσιμο</span>
+                {quoteOfDay.error && <small>{quoteOfDay.error}</small>}
+              </>
+            ) : quoteOfDay?.quote ? (
+              <>
+                <p className="quote-text">«{quoteOfDay.quote}»</p>
+                {quoteOfDay.author && <small className="quote-author">— {quoteOfDay.author}</small>}
+              </>
+            ) : (
+              <span>Δεν βρέθηκε απόφθεγμα.</span>
+            )}
+          </div>
         </div>
       </header>
 
       <div className="toolbar">
-        <button className="btn" onClick={() => void load()} disabled={loading}>
+        <button className="btn" onClick={() => void load({ force: true })} disabled={loading}>
           Ανανέωση
         </button>
         <button className="btn" onClick={handleRunIngestion} disabled={busyAction !== null}>
@@ -409,16 +499,32 @@ export default function TodayPage() {
                   {!sourceArticlesLoading && !sourceArticlesError && sourceArticles.length === 0 && (
                     <p>Δεν βρέθηκαν εισαγμένα άρθρα για {topSourceFilter}.</p>
                   )}
-                  {sourceArticles.map((item) => (
-                    <article
-                      key={item.id}
-                      className="story-card"
-                      onDoubleClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
-                      title="Διπλό κλικ για άνοιγμα άρθρου"
-                    >
-                      <h3>{item.title}</h3>
-                    </article>
-                  ))}
+                  {sourceArticles.map((item) => {
+                    const publishedIso = item.published_at ?? item.created_at;
+                    const relativePublished = formatRelativeGreekTime(publishedIso);
+                    const exactPublished = formatGreekDateTime(publishedIso);
+                    return (
+                      <article
+                        key={item.id}
+                        className="story-card"
+                        onDoubleClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                        title="Διπλό κλικ για άνοιγμα άρθρου"
+                      >
+                        <div className="story-head">
+                          <span className="source-pill" title={item.source}>
+                            <SourceIcon source={item.source} />
+                            <span className="source-name">{item.source}</span>
+                          </span>
+                          {relativePublished && (
+                            <span className="time-pill" title={exactPublished || undefined}>
+                              {relativePublished}
+                            </span>
+                          )}
+                        </div>
+                        <h3>{item.title}</h3>
+                      </article>
+                    );
+                  })}
                 </>
               )}
             </div>
@@ -426,6 +532,16 @@ export default function TodayPage() {
 
           <section>
             <h2>Απεργίες / Μετακινήσεις</h2>
+            {strikeSummaryBullets.length > 0 && (
+              <div className="strike-summary-box">
+                <p className="strike-summary-kicker">Τι Να Προσέξεις Σήμερα</p>
+                <ul>
+                  {strikeSummaryBullets.map((bullet, idx) => (
+                    <li key={`strike-summary-${idx}`}>{bullet}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {strikeSources.length > 0 && (
               <div className="strike-filters">
                 <button
@@ -454,7 +570,6 @@ export default function TodayPage() {
                   key={item.id}
                   item={item}
                   summaryMode="hidden"
-                  showScore={false}
                   showSourcesToggle={false}
                   variant="strike"
                 />
