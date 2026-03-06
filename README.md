@@ -1,17 +1,49 @@
-# Πρωινό Briefing (MVP)
+# Πρωινό Briefing
 
-Personal Greek news briefing app with:
-- FastAPI backend (`/api`) for ingestion, clustering, ranking, summaries, weather
-- React frontend for Today's briefing, archive, and source settings
-- SQLite local storage
-- APScheduler daily run inside FastAPI
+Greek morning briefing application for daily news monitoring and summarization.
 
-## Structure
+## What The App Does
 
-- `backend/`
-- `frontend/`
+Every day the app builds a briefing with:
+- Top stories clustered from multiple Greek news sources
+- Strike and transport updates
+- Weather snapshot + 3-day outlook
+- Name day information
+- Quote of the day
 
-## Backend setup
+The stack:
+- Backend API: FastAPI (`/api`)
+- Frontend: React + Vite
+- Database: SQLite (`backend/data.db`)
+- Scheduler: APScheduler (daily ingestion + briefing generation)
+
+## Screenshots
+
+### Today Overview
+
+![Today overview](docs/images/today-overview.png)
+
+### News Grid
+
+![News grid](docs/images/news-grid.png)
+
+### Strikes / Transport
+
+![Strikes and transport](docs/images/strikes-view.png)
+
+## Pipeline Overview
+
+1. Fetch articles from enabled sources (RSS + sitemap/JSON feeds).
+2. Normalize and deduplicate articles by canonical URL/fingerprint.
+3. Build daily clusters using title similarity and token overlap.
+4. Rank clusters by coverage, freshness, impact signals, and source weight.
+5. Generate daily summaries (top stories + strikes) through the configured LLM provider.
+6. Enrich with weather, name days, and quote of the day.
+7. Persist final briefing payload for Today and Archive views.
+
+## Quick Start
+
+Backend:
 
 ```bash
 cd backend
@@ -19,11 +51,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-python -m app.seed_sources
 uvicorn app.main:app --reload --port 8000
 ```
 
-## Frontend setup
+Frontend:
 
 ```bash
 cd frontend
@@ -31,56 +62,71 @@ npm install
 npm run dev
 ```
 
-Set API base in frontend:
+Default frontend API config:
+- `VITE_API_BASE=/api`
+- `VITE_BACKEND_URL=http://localhost:8000`
+
+Local URLs:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/docs`
+
+## First Run Checklist
+
+1. Start backend and verify `GET /health` returns `{"ok": true}`.
+2. Start frontend and open the Today page.
+3. Trigger ingestion manually (optional but useful on a fresh DB):
 
 ```bash
-VITE_API_BASE=http://localhost:8000/api
+curl -X POST http://localhost:8000/api/admin/run-ingestion
 ```
 
-For local Vite dev with `VITE_API_BASE=/api` (default), API calls are proxied to `http://localhost:8000`.
-You can override proxy target with:
+4. Force briefing generation for a specific day:
 
 ```bash
-VITE_BACKEND_URL=http://localhost:8000
+curl -X POST http://localhost:8000/api/admin/generate-briefing \
+  -H 'Content-Type: application/json' \
+  -d '{"day":"2026-03-05"}'
 ```
 
-## Key API endpoints
+## Scheduling
 
-- `GET /api/briefings/today`
-- `GET /api/briefings/{YYYY-MM-DD}`
-- `POST /api/admin/run-ingestion`
-- `POST /api/admin/generate-briefing`
-- `GET /api/admin/strikes/live`
-- `GET /api/sources`
-- `PATCH /api/sources/{id}`
-- `GET /api/clusters/{id}`
+On app startup the backend:
+- Initializes DB tables
+- Seeds default sources
+- Starts a daily scheduler job
 
-## Notes
+Default schedule is `08:30` in `Europe/Athens` timezone, controlled by:
+- `SCHEDULE_HOUR`
+- `SCHEDULE_MINUTE`
+- `TIMEZONE`
 
-- Summaries are generated from titles/snippets only.
-- If LLM fails, no summary text is shown.
-- "Με μια ματιά" daily summary is generated from top stories and returned as `top_summary_md`.
-- "Απεργίες / Μετακινήσεις" summary bullets are generated from strike feed items and returned as `strike_summary_md`.
-- By default, today briefing is auto-generated on first request if it doesn't exist yet.
-- Optional Gemini setup for LLM:
-  - `LLM_PROVIDER=gemini`
-  - `GEMINI_API_KEY=...`
-  - `LLM_MODEL=gemini-2.0-flash` (or another available Gemini model)
-  - Optional fallback when Gemini has no response:
-    - `GROQ_API_KEY=...`
-    - `GROQ_FALLBACK_MODEL=openai/gpt-oss-120b`
-- Weather uses Open-Meteo. If your network injects TLS certificates, set either:
-  - `WEATHER_CA_BUNDLE=/path/to/root-ca.pem` (recommended)
-  - or `WEATHER_SSL_VERIFY=false` (insecure)
-  - or `WEATHER_ALLOW_INSECURE_FALLBACK=true` (retry insecure only after TLS failure)
-- Strikes section uses dedicated tag sources (no legacy cluster bubbles):
-  - `STRIKE_TAG_URLS` (comma-separated tag pages)
-  - optional `STRIKE_FEED_USE_LLM=true` for LLM curation/summaries
-  - `STRIKE_FEED_LIMIT` controls returned strike cards
-- Top 15 list is constrained by `TOP_NEWS_SITES` (comma-separated site base URLs).
+## LLM + Fallback Behavior
 
-Debug strike feed from all configured sources:
+- Supported providers: `openai`, `anthropic`, `ollama`, `gemini`, `groq`, `custom`
+- If summary generation fails, the briefing still returns structural data (stories, strikes, weather, etc.), while summary fields may be empty.
+- Strike feed can optionally use LLM curation via `STRIKE_FEED_USE_LLM=true`.
+
+## Docs (MkDocs Material)
+
+Run docs locally:
 
 ```bash
-curl -s "http://localhost:8000/api/admin/strikes/live?limit=500&debug=true" | jq
+pip install -r requirements-docs.txt
+mkdocs serve -a 127.0.0.1:8001
 ```
+
+Open `http://127.0.0.1:8001`.
+
+Build static docs:
+
+```bash
+mkdocs build
+```
+
+## Project Structure
+
+- `backend/` FastAPI app, ingestion, clustering/ranking, summarization, scheduler
+- `frontend/` React UI (`Today`, `Archive`, `Settings`)
+- `docs/` MkDocs pages (setup, config, API, architecture)
+- `mkdocs.yml` docs site config

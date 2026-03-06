@@ -99,7 +99,6 @@ export default function TodayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [topSourceFilter, setTopSourceFilter] = useState<string>(ALL_PAPERS_LABEL);
   const [strikeSourceFilter, setStrikeSourceFilter] = useState<string>(ALL_PAPERS_LABEL);
   const [sourceArticles, setSourceArticles] = useState<ArticleItem[]>([]);
@@ -164,16 +163,8 @@ export default function TodayPage() {
 
   const handleRunIngestion = async () => {
     setBusyAction('ingestion');
-    setStatusMessage(null);
     try {
-      const result = await runIngestion();
-      if (result.failed_sources.length > 0) {
-        setStatusMessage(
-          `Ingestion: fetched ${result.fetched}, inserted ${result.inserted}. Αποτυχία σε: ${result.failed_sources.join(', ')}`
-        );
-      } else {
-        setStatusMessage(`Ingestion: fetched ${result.fetched}, inserted ${result.inserted}.`);
-      }
+      await runIngestion();
       await load({ force: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Αποτυχία ingestion');
@@ -184,11 +175,8 @@ export default function TodayPage() {
 
   const handleGenerate = async () => {
     setBusyAction('generate');
-    setStatusMessage(null);
     try {
-      const result = await generateBriefing();
-      const topCount = result.briefing?.top_stories?.length ?? 0;
-      setStatusMessage(`Briefing δημιουργήθηκε: ${topCount} θέματα.`);
+      await generateBriefing();
       await load({ force: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Αποτυχία δημιουργίας briefing');
@@ -435,16 +423,15 @@ export default function TodayPage() {
           Ανανέωση
         </button>
         <button className="btn" onClick={handleRunIngestion} disabled={busyAction !== null}>
-          {busyAction === 'ingestion' ? 'Τρέχει...' : 'Run ingestion'}
+          {busyAction === 'ingestion' ? 'Τρέχει...' : 'Λήψη ειδήσεων'}
         </button>
         <button className="btn btn-primary" onClick={handleGenerate} disabled={busyAction !== null}>
-          {busyAction === 'generate' ? 'Τρέχει...' : 'Generate briefing'}
+          {busyAction === 'generate' ? 'Τρέχει...' : 'Δημιουργία σύνοψης'}
         </button>
       </div>
 
       {loading && <p>Φόρτωση...</p>}
       {error && <p className="error-box">{error}</p>}
-      {statusMessage && <p className="status-box">{statusMessage}</p>}
 
       {!loading && !error && briefing && (
         <>
@@ -484,8 +471,8 @@ export default function TodayPage() {
                 <>
                   {filteredTopStories.length === 0 && (
                     <p>
-                      Δεν βρέθηκαν άρθρα ακόμα. Πάτησε πρώτα <strong>Run ingestion</strong> και μετά
-                      <strong> Generate briefing</strong>.
+                      Δεν βρέθηκαν άρθρα ακόμα. Πάτησε πρώτα <strong>Λήψη ειδήσεων</strong> και μετά
+                      <strong> Δημιουργία σύνοψης</strong>.
                     </p>
                   )}
                   {filteredTopStories.map((item) => (

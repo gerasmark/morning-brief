@@ -19,18 +19,34 @@ from app.services.ingestion import IngestionService
 from app.services.scheduler import SchedulerService
 
 
-def _configure_logging() -> None:
+def _resolve_log_level(value: str, fallback: int) -> int:
+    parsed = getattr(logging, value.strip().upper(), None)
+    if isinstance(parsed, int):
+        return parsed
+    return fallback
+
+
+def _configure_logging(settings: Settings) -> None:
+    root_level = _resolve_log_level(settings.log_level, logging.INFO)
     if not logging.getLogger().handlers:
         logging.basicConfig(
-            level=logging.INFO,
+            level=root_level,
             format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
         )
-    logging.getLogger("app").setLevel(logging.INFO)
+    logging.getLogger().setLevel(root_level)
+    logging.getLogger("app").setLevel(_resolve_log_level(settings.app_log_level, root_level))
 
+    httpx_level = _resolve_log_level(settings.httpx_log_level, logging.WARNING)
+    logging.getLogger("httpx").setLevel(httpx_level)
+    logging.getLogger("httpcore").setLevel(httpx_level)
+    logging.getLogger("h11").setLevel(httpx_level)
+    logging.getLogger("uvicorn.access").setLevel(
+        _resolve_log_level(settings.uvicorn_access_log_level, logging.WARNING)
+    )
 
-_configure_logging()
 
 settings = get_settings()
+_configure_logging(settings)
 briefing_service = BriefingService()
 ingestion_service = IngestionService()
 scheduler_service = SchedulerService(settings)
@@ -195,6 +211,20 @@ async def run_ingestion(session: AsyncSession = Depends(get_session)) -> dict:
         "fetched": result.fetched,
         "inserted": result.inserted,
         "failed_sources": result.failed_sources,
+        "source_stats": [
+            {
+                "source": item.source_name,
+                "status": item.status,
+                "fetched": item.fetched,
+                "inserted": item.inserted,
+                "http_requests": item.http_requests,
+                "http_non_200": item.http_non_200,
+                "http_statuses": item.http_statuses,
+                "total_articles": item.total_articles,
+                "last_24h_articles": item.last_24h_articles,
+            }
+            for item in result.source_stats
+        ],
     }
 
 

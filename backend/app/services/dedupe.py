@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -10,8 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models import Article, Cluster, ClusterArticle
-from app.services.keywords import STRIKE_KEYWORDS
+from app.services.keywords import BIRTHDAY_NEWS_KEYWORDS, STRIKE_KEYWORDS
 from app.utils.text import cluster_key, normalize_title, token_set
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -36,6 +39,11 @@ def _jaccard(a: set[str], b: set[str]) -> float:
 def _is_strike_related(articles: list[Article]) -> bool:
     payload = " ".join(filter(None, [a.title + " " + (a.snippet or "") for a in articles])).lower()
     return any(keyword in payload for keyword in STRIKE_KEYWORDS)
+
+
+def _is_birthday_story(article: Article) -> bool:
+    payload = f"{article.title} {article.snippet or ''}".lower()
+    return any(keyword in payload for keyword in BIRTHDAY_NEWS_KEYWORDS)
 
 
 def _pick_representative(articles: list[Article]) -> Article:
@@ -81,6 +89,12 @@ async def build_daily_clusters(
             fallback_stmt = fallback_stmt.where(Article.source_id.in_(source_ids))
         fallback_stmt = fallback_stmt.order_by(Article.published_at.desc(), Article.created_at.desc()).limit(400)
         articles = list((await session.execute(fallback_stmt)).scalars().all())
+
+    original_count = len(articles)
+    articles = [article for article in articles if not _is_birthday_story(article)]
+    filtered_count = original_count - len(articles)
+    if filtered_count > 0:
+        logger.info("Top news filter removed birthday stories count=%d day=%s", filtered_count, day)
 
     temp_clusters: list[TempCluster] = []
 

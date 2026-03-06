@@ -463,7 +463,7 @@ async def _generate_with_gemini_fallback(
         )
 
     if primary_provider not in GEMINI_PROVIDER_ALIASES:
-        logger.info("Groq fallback skipped provider=%s reason=not_gemini", primary_provider)
+        logger.debug("Groq fallback skipped provider=%s reason=not_gemini", primary_provider)
         return ""
     if not settings.groq_api_key:
         logger.warning("Groq fallback unavailable reason=missing_groq_api_key")

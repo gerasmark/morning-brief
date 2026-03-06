@@ -46,6 +46,7 @@ class Settings(BaseSettings):
         "https://www.newsbomb.gr,"
         "https://www.protothema.gr,"
         "https://www.tanea.gr,"
+        "https://www.tovima.gr,"
         "https://www.iefimerida.gr,"
         "https://www.news247.gr"
     )
@@ -54,6 +55,11 @@ class Settings(BaseSettings):
 
     schedule_hour: int = 8
     schedule_minute: int = 30
+
+    log_level: str = "INFO"
+    app_log_level: str = "INFO"
+    httpx_log_level: str = "WARNING"
+    uvicorn_access_log_level: str = "WARNING"
 
     cors_allow_origins: str = "*"
 

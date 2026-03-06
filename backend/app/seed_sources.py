@@ -17,6 +17,14 @@ SEED_SOURCES = [
         "weight": 1.0,
     },
     {
+        "name": "ΤΟ ΒΗΜΑ",
+        "base_url": "https://www.tovima.gr",
+        "type": SourceType.sitemap,
+        "feed_url": None,
+        "sitemap_url": "https://www.tovima.gr/wp-content/uploads/json/sitemap-news.xml",
+        "weight": 1.0,
+    },
+    {
         "name": "Ναυτεμπορική",
         "base_url": "https://www.naftemporiki.gr",
         "type": SourceType.rss,

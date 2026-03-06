@@ -45,6 +45,7 @@ def _source_name_for_domain(domain: str) -> str:
         "kathimerini.gr": "Καθημερινή",
         "protothema.gr": "Πρώτο Θέμα",
         "tanea.gr": "ΤΑ ΝΕΑ",
+        "tovima.gr": "ΤΟ ΒΗΜΑ",
         "iefimerida.gr": "iefimerida",
         "news247.gr": "News247",
     }

@@ -1,0 +1,15 @@
+site_name: Proino Briefing
+site_description: Project documentation for the morning briefing app
+
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.top
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - API: api.md
+  - Architecture: architecture.md

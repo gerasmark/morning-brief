@@ -51,6 +51,17 @@ export async function runIngestion(): Promise<{
   fetched: number;
   inserted: number;
   failed_sources: string[];
+  source_stats: Array<{
+    source: string;
+    status: string;
+    fetched: number;
+    inserted: number;
+    http_requests: number;
+    http_non_200: number;
+    http_statuses: Record<string, number>;
+    total_articles: number;
+    last_24h_articles: number;
+  }>;
 }> {
   return fetchJson('/admin/run-ingestion', { method: 'POST' });
 }

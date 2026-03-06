@@ -32,7 +32,7 @@ class QuoteOfDayService:
         ajax_url = _ajax_url_from_source(source_url)
         sse = _sse_for_day(day)
         provider = urlsplit(source_url).netloc.lower().replace("www.", "")
-        logger.info("Quote-of-day fetch start day=%s source_url=%s ajax_url=%s sse=%s", day, source_url, ajax_url, sse)
+        logger.debug("Quote-of-day fetch start day=%s source_url=%s ajax_url=%s sse=%s", day, source_url, ajax_url, sse)
 
         quote: str | None = None
         author: str | None = None
@@ -54,7 +54,7 @@ class QuoteOfDayService:
                     timeout=20.0,
                 )
                 ajax_response.raise_for_status()
-                logger.info(
+                logger.debug(
                     "Quote-of-day ajax http_ok day=%s status=%s bytes=%d",
                     day,
                     ajax_response.status_code,
@@ -66,7 +66,7 @@ class QuoteOfDayService:
                     logger.warning("Quote-of-day ajax parse failed day=%s source_url=%s reason=no_quote_in_ajax", day, source_url)
                     html_response = await client.get(source_url, timeout=20.0)
                     html_response.raise_for_status()
-                    logger.info(
+                    logger.debug(
                         "Quote-of-day html fallback http_ok day=%s status=%s bytes=%d",
                         day,
                         html_response.status_code,
