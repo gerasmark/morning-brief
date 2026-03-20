@@ -103,3 +103,32 @@ export type ArticleItem = {
   created_at: string | null;
   source: string;
 };
+
+export type EmailDeliverySettings = {
+  transport: 'smtp' | 'resend_api';
+  available_transports: Array<'smtp' | 'resend_api'>;
+  auto_send_enabled: boolean;
+  recipient_emails: string[];
+  sender_address: string | null;
+  sender_name: string;
+  active_transport_ready: boolean;
+  transport_readiness: {
+    smtp: boolean;
+    resend_api: boolean;
+  };
+  schedule_hour: number;
+  schedule_minute: number;
+  timezone: string;
+};
+
+export type EmailDeliveryResult = {
+  status: 'sent' | 'skipped';
+  day: string;
+  sender?: string;
+  subject?: string;
+  recipients?: string[];
+  recipient_count: number;
+  transport?: 'smtp' | 'resend_api';
+  triggered_by?: 'manual' | 'scheduled';
+  reason?: string;
+};

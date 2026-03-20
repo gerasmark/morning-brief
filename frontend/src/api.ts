@@ -1,4 +1,4 @@
-import { ArticleItem, Briefing, BriefingMeta, SourceItem } from './types';
+import { ArticleItem, Briefing, BriefingMeta, EmailDeliveryResult, EmailDeliverySettings, SourceItem } from './types';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -73,6 +73,20 @@ export async function generateBriefing(day?: string): Promise<{ status: string; 
   });
 }
 
+export async function sendBriefingEmail(day?: string, recipientEmails?: string[]): Promise<EmailDeliveryResult> {
+  const payload: { day?: string; recipient_emails?: string[] } = {};
+  if (day) {
+    payload.day = day;
+  }
+  if (recipientEmails && recipientEmails.length > 0) {
+    payload.recipient_emails = recipientEmails;
+  }
+  return fetchJson('/admin/send-briefing-email', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function listSources(): Promise<SourceItem[]> {
   return fetchJson<SourceItem[]>('/sources');
 }
@@ -91,4 +105,19 @@ export async function listArticles(source?: string, limit = 2000): Promise<Artic
     params.set('source', source);
   }
   return fetchJson<ArticleItem[]>(`/articles?${params.toString()}`);
+}
+
+export async function getEmailDeliverySettings(): Promise<EmailDeliverySettings> {
+  return fetchJson<EmailDeliverySettings>('/delivery/email-settings');
+}
+
+export async function updateEmailDeliverySettings(payload: {
+  transport: 'smtp' | 'resend_api';
+  auto_send_enabled: boolean;
+  recipient_emails: string[];
+}): Promise<EmailDeliverySettings> {
+  return fetchJson<EmailDeliverySettings>('/delivery/email-settings', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }

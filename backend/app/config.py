@@ -1,11 +1,18 @@
 from functools import lru_cache
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=BACKEND_DIR / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     database_url: str = "sqlite:///./data.db"
     timezone: str = "Europe/Athens"
@@ -54,7 +61,24 @@ class Settings(BaseSettings):
     strike_feed_use_llm: bool = False
 
     schedule_hour: int = 8
-    schedule_minute: int = 30
+    schedule_minute: int = 0
+
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    smtp_timeout_seconds: int = 20
+    email_from_address: str | None = None
+    email_from_name: str = "Πρωινό Briefing"
+    resend_api_key: str | None = None
+    resend_api_base_url: str = "https://api.resend.com"
+    resend_timeout_seconds: int = 20
+    resend_from_address: str = "onboarding@resend.dev"
+    resend_ssl_verify: bool = True
+    resend_ca_bundle: str | None = None
+    resend_allow_insecure_fallback: bool = False
 
     log_level: str = "INFO"
     app_log_level: str = "INFO"
@@ -66,6 +90,22 @@ class Settings(BaseSettings):
     @property
     def tzinfo(self) -> ZoneInfo:
         return ZoneInfo(self.timezone)
+
+
+def resolve_database_url(database_url: str) -> str:
+    for prefix in ("sqlite:///", "sqlite+aiosqlite:///"):
+        if not database_url.startswith(prefix):
+            continue
+
+        path_part, separator, query = database_url[len(prefix) :].partition("?")
+        if path_part == ":memory:" or path_part.startswith("/"):
+            return database_url
+
+        resolved = (BACKEND_DIR / path_part).resolve()
+        suffix = f"?{query}" if separator else ""
+        return f"{prefix}{resolved.as_posix()}{suffix}"
+
+    return database_url
 
 
 @lru_cache

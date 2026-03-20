@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="520" viewBox="0 0 1120 520" role="img" aria-labelledby="title desc">
+  <title id="title">CLI top stories example</title>
+  <desc id="desc">Illustrative terminal story list from the Proino Briefing CLI showing ranked top story cards.</desc>
+  <rect width="1120" height="520" fill="#0b0f14"/>
+  <g font-family="Menlo, Monaco, 'DejaVu Sans Mono', monospace" font-size="15">
+    <text x="10" y="24" fill="#54a6ff" font-size="18" font-weight="700">Top Stories</text>
+    <text x="116" y="24" fill="#f2f7fb" font-size="18">15</text>
+    <text x="144" y="24" fill="#8f98a6" font-size="18">ranked clusters</text>
+    <line x1="4" y1="12" x2="1116" y2="12" stroke="#3191ff" stroke-width="2"/>
+
+    <rect x="10" y="46" width="1106" height="68" fill="none" stroke="#3191ff" stroke-width="2"/>
+    <text x="26" y="60" fill="#54a6ff" font-size="14">01</text>
+    <text x="46" y="60" fill="#54a6ff" font-size="14">──────────────────────────────────────────────────────────────────────────────────────────────</text>
+    <text x="16" y="82" fill="#f2f7fb" font-size="17" font-weight="700">Φιντάν σε Αραγτσί: Απαράδεκτη η παραβίαση του τουρκικού εναέριου χώρου</text>
+    <text x="16" y="101" fill="#f2f7fb">[Πρώτο Θέμα] [3 sources] [2026-03-10 12:42]</text>
+    <text x="16" y="119" fill="#8f98a6">https://www.protothema.gr/world/article/1786331/fidan-se-aragtsi-aparadekti-i-paraviasi-tou-tourkikou-enaeriou-horou/</text>
+
+    <rect x="10" y="147" width="1106" height="68" fill="none" stroke="#3191ff" stroke-width="2"/>
+    <text x="26" y="161" fill="#54a6ff" font-size="14">02</text>
+    <text x="46" y="161" fill="#54a6ff" font-size="14">──────────────────────────────────────────────────────────────────────────────────────────────</text>
+    <text x="16" y="183" fill="#f2f7fb" font-size="17" font-weight="700">Λαμία: Καταδικάστηκε η μητέρα που εγκατέλειψε το 9,5 ετών αυτιστικό παιδί της στα δικαστήρια</text>
+    <text x="16" y="202" fill="#f2f7fb">[iefimerida] [2 sources] [2026-03-10 14:11]</text>
+    <text x="16" y="220" fill="#8f98a6">https://www.iefimerida.gr/ellada/lamia-katadiki-mitera-egkateleipse-aytistiko-paidi</text>
+
+    <rect x="10" y="248" width="1106" height="68" fill="none" stroke="#3191ff" stroke-width="2"/>
+    <text x="26" y="262" fill="#54a6ff" font-size="14">03</text>
+    <text x="46" y="262" fill="#54a6ff" font-size="14">──────────────────────────────────────────────────────────────────────────────────────────────</text>
+    <text x="16" y="284" fill="#f2f7fb" font-size="17" font-weight="700">Επίθεση με drone σε βιομηχανικό συγκρότημα στο Άμπου Ντάμπι - Ξέσπασε πυρκαγιά</text>
+    <text x="16" y="303" fill="#f2f7fb">[Ναυτεμπορική] [1 sources] [2026-03-10 12:01]</text>
+    <text x="16" y="321" fill="#8f98a6">https://www.naftemporiki.gr/kosmos/2083517/epithesi-me-drone-se-viomichaniko-sygkrotima-sto-ampoy-ntampi-xespase-pyrkagia/</text>
+
+    <rect x="10" y="349" width="1106" height="68" fill="none" stroke="#3191ff" stroke-width="2"/>
+    <text x="26" y="363" fill="#54a6ff" font-size="14">04</text>
+    <text x="46" y="363" fill="#54a6ff" font-size="14">──────────────────────────────────────────────────────────────────────────────────────────────</text>
+    <text x="16" y="385" fill="#f2f7fb" font-size="17" font-weight="700">Βάτεφουλ (Γερμανός ΥΠ.ΕΞ.): «Αν η Κύπρος μάς χρειαστεί, θα είμαστε παρόντες»</text>
+    <text x="16" y="404" fill="#f2f7fb">[iefimerida] [2 sources] [2026-03-10 13:43]</text>
+    <text x="16" y="422" fill="#8f98a6">https://www.iefimerida.gr/kosmos/germanos-ypex-i-kypros-mas-hreiastei-tha-eimaste-parontes</text>
+
+    <rect x="10" y="450" width="1106" height="58" fill="none" stroke="#3191ff" stroke-width="2"/>
+    <text x="26" y="464" fill="#54a6ff" font-size="14">05</text>
+    <text x="46" y="464" fill="#54a6ff" font-size="14">──────────────────────────────────────────────────────────────────────────────────────────────</text>
+    <text x="16" y="486" fill="#f2f7fb" font-size="17" font-weight="700">Ερντογάν προς Ιράν: Οι παραβιάσεις του τουρκικού εναέριου χώρου «δεν δικαιολογούνται»</text>
+    <text x="16" y="505" fill="#f2f7fb">[Ναυτεμπορική] [2 sources] [2026-03-10 12:24]</text>
+  </g>
+</svg>

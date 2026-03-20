@@ -68,6 +68,7 @@ Special behavior:
 
 - `POST /api/admin/run-ingestion`
 - `POST /api/admin/generate-briefing`
+- `POST /api/admin/send-briefing-email`
 - `GET /api/admin/strikes/live`
 - `GET /api/admin/strikes/live?debug=true`
 
@@ -84,13 +85,49 @@ Special behavior:
 
 If `day` is omitted, current Athens day is used.
 
+`POST /api/admin/send-briefing-email` body:
+
+```json
+{"day":"2026-03-05","recipient_emails":["name@example.com","team@example.com"]}
+```
+
+Notes:
+- If `recipient_emails` is omitted, the backend uses the saved recipients from the Settings page.
+- The response includes sender address, subject, and recipient count.
+
 `GET /api/admin/strikes/live` query params:
 - `limit`: `1..1000` (default `200`)
 - `debug`: include source debugging metadata
 
+## Email Delivery Settings
+
+- `GET /api/delivery/email-settings`
+- `PUT /api/delivery/email-settings`
+
+`PUT /api/delivery/email-settings` body:
+
+```json
+{
+  "transport": "resend_api",
+  "auto_send_enabled": true,
+  "recipient_emails": ["name@example.com", "team@example.com"]
+}
+```
+
+Response fields:
+- `sender_address`: the configured sender for the selected transport (`EMAIL_FROM_ADDRESS` / `SMTP_USERNAME` for SMTP, `RESEND_FROM_ADDRESS` for Resend)
+- `sender_name`: display name used in the `From` header
+- `transport`: selected transport (`smtp` or `resend_api`)
+- `available_transports`: transport options supported by the backend
+- `active_transport_ready`: whether the selected transport is ready to send
+- `transport_readiness`: readiness map for each transport
+- `schedule_hour`, `schedule_minute`, `timezone`: the daily schedule used for auto-send
+- `recipient_emails`: saved recipient list
+
 Common errors:
 - `404` for missing source/briefing/cluster
 - Validation errors for malformed date or invalid payload fields
+- `400` for invalid recipient email addresses or missing transport config
 
 ## Explore interactively
 

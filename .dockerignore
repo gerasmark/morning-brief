@@ -1,0 +1,10 @@
+.git
+.env
+backend
+docs
+mkdocs.yml
+playground
+requirements-docs.txt
+frontend/node_modules
+frontend/dist
+frontend/tsconfig.tsbuildinfo

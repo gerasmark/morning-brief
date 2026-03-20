@@ -2,7 +2,7 @@
 
 ## High-Level Diagram
 
-`Sources (RSS/Sitemap/Tag pages)` -> `Ingestion` -> `Articles (SQLite)` -> `Clustering + Ranking` -> `Daily summaries + enrichments` -> `Briefing payload` -> `React UI`
+`Sources (RSS/Sitemap/Tag pages)` -> `Ingestion` -> `Articles (SQLite)` -> `Clustering + Ranking` -> `Daily summaries + enrichments` -> `Briefing payload` -> `React UI / Email delivery`
 
 ## Backend Layers
 
@@ -12,6 +12,7 @@
 - `services/ranking.py`: ranking model for top cluster selection
 - `services/summarizer.py`: LLM generation for top/strike summaries
 - `services/briefing.py`: orchestration + payload assembly
+- `services/email_delivery.py`: selectable SMTP or Resend API delivery + HTML/plain-text report rendering
 - `services/scheduler.py`: APScheduler daily pipeline job
 
 ## Daily Pipeline Details
@@ -57,6 +58,12 @@
 - Daily summary text is stored in dedicated tables.
 - `/api/briefings/today` returns assembled payload and refreshes weather.
 
+8. Email delivery
+- Manual send uses the stored briefing payload and renders it as HTML + plain text.
+- Scheduled send runs after the daily pipeline when auto-send is enabled.
+- Delivery can use SMTP or the Resend HTTPS API.
+- Transport credentials come from env vars; recipients, auto-send state, and the selected transport are stored in SQLite.
+
 ## Strike Feed Design
 
 - Live strike cards come from configured tag URLs (`STRIKE_TAG_URLS`).
@@ -73,10 +80,12 @@ Main tables:
 - `clusters`, `cluster_articles`: grouped story sets
 - `daily_top_summaries`, `daily_strike_summaries`: daily summary text
 - `briefings`: per-day aggregate payload references
+- `email_delivery_configs`: saved recipients + auto-send toggle
+- `email_delivery_logs`: send attempts and outcomes
 
 ## Frontend Integration
 
 - `Today` page reads `/api/briefings/today`
 - `Archive` page reads `/api/briefings` and `/api/briefings/{day}`
-- `Settings` page reads/patches `/api/sources`
-- Manual admin actions (`run-ingestion`, `generate-briefing`) are available from the Today page controls
+- `Settings` page reads/patches `/api/sources` and `/api/delivery/email-settings`
+- Manual admin actions (`run-ingestion`, `generate-briefing`, `send-briefing-email`) are available from the Today page controls

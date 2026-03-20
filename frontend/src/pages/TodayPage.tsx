@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ClusterCard from '../components/ClusterCard';
 import SourceIcon from '../components/SourceIcon';
-import { generateBriefing, getTodayBriefing, listArticles, listSources, runIngestion } from '../api';
+import { generateBriefing, getTodayBriefing, listArticles, listSources, runIngestion, sendBriefingEmail } from '../api';
 import { ArticleItem, Briefing, WeatherForecastDay } from '../types';
 import { formatGreekDateTime, formatRelativeGreekTime } from '../time';
 
@@ -106,6 +106,8 @@ export default function TodayPage() {
   const [sourceArticlesError, setSourceArticlesError] = useState<string | null>(null);
   const [topFilterSources, setTopFilterSources] = useState<string[]>([]);
   const [weatherExpanded, setWeatherExpanded] = useState(false);
+  const [deliveryStatus, setDeliveryStatus] = useState<string | null>(null);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
 
   const load = async ({ force = false }: { force?: boolean } = {}) => {
     const athensDay = currentAthensDay();
@@ -180,6 +182,23 @@ export default function TodayPage() {
       await load({ force: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Αποτυχία δημιουργίας briefing');
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    setBusyAction('email');
+    setDeliveryStatus(null);
+    setDeliveryError(null);
+    try {
+      const result = await sendBriefingEmail();
+      const transportLabel = result.transport === 'resend_api' ? 'Resend API' : 'SMTP';
+      setDeliveryStatus(
+        `Το report στάλθηκε σε ${result.recipient_count} παραλήπτες από ${result.sender} μέσω ${transportLabel}.`
+      );
+    } catch (err) {
+      setDeliveryError(err instanceof Error ? err.message : 'Αποτυχία αποστολής email');
     } finally {
       setBusyAction(null);
     }
@@ -428,10 +447,15 @@ export default function TodayPage() {
         <button className="btn btn-primary" onClick={handleGenerate} disabled={busyAction !== null}>
           {busyAction === 'generate' ? 'Τρέχει...' : 'Δημιουργία σύνοψης'}
         </button>
+        <button className="btn" onClick={handleSendEmail} disabled={busyAction !== null || loading}>
+          {busyAction === 'email' ? 'Στέλνεται...' : 'Αποστολή email'}
+        </button>
       </div>
 
       {loading && <p>Φόρτωση...</p>}
       {error && <p className="error-box">{error}</p>}
+      {deliveryStatus && <p className="status-box">{deliveryStatus}</p>}
+      {deliveryError && <p className="error-box">{deliveryError}</p>}
 
       {!loading && !error && briefing && (
         <>

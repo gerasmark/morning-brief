@@ -8,6 +8,7 @@ Proino Briefing is a local-first Greek news digest app that aggregates daily new
 - Strike and transport update feed for current-day monitoring
 - Weather panel with current conditions and short forecast
 - Name day extraction and quote-of-day extraction
+- Optional scheduled or manual HTML email delivery
 - Source controls (enable/disable + per-source weighting)
 - Archive browsing for past generated briefings
 
@@ -24,6 +25,20 @@ Proino Briefing is a local-first Greek news digest app that aggregates daily new
 ### Strikes / Transport
 
 ![Strikes and transport](images/strikes-view.png)
+
+## CLI Preview
+
+### CLI Dashboard
+
+Example output from `backend/.venv/bin/python backend/brief.py today`
+
+![CLI dashboard](images/cli-dashboard.svg)
+
+### CLI Top Stories
+
+Example output from the story section of `backend/.venv/bin/python backend/brief.py today`
+
+![CLI top stories](images/cli-top-stories.svg)
 
 ## System Components
 

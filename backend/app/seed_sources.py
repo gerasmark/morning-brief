@@ -80,26 +80,7 @@ async def seed() -> None:
         existing_sources = list((await session.execute(select(Source))).scalars().all())
         existing_by_name = {source.name: source for source in existing_sources}
         for item in SEED_SOURCES:
-            existing_source = existing_by_name.get(item["name"])
-            if existing_source is not None:
-                changed = False
-                if existing_source.base_url != item["base_url"]:
-                    existing_source.base_url = item["base_url"]
-                    changed = True
-                if existing_source.type != item["type"]:
-                    existing_source.type = item["type"]
-                    changed = True
-                if existing_source.feed_url != item["feed_url"]:
-                    existing_source.feed_url = item["feed_url"]
-                    changed = True
-                if existing_source.sitemap_url != item["sitemap_url"]:
-                    existing_source.sitemap_url = item["sitemap_url"]
-                    changed = True
-                if existing_source.weight != item["weight"]:
-                    existing_source.weight = item["weight"]
-                    changed = True
-                if changed:
-                    session.add(existing_source)
+            if existing_by_name.get(item["name"]) is not None:
                 continue
             session.add(
                 Source(

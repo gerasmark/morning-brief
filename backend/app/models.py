@@ -133,3 +133,28 @@ class Briefing(Base):
     top_cluster_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     strike_cluster_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+
+class EmailDeliveryConfig(Base):
+    __tablename__ = "email_delivery_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    transport: Mapped[str] = mapped_column(String(32), default="smtp", nullable=False)
+    auto_send_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    recipient_emails: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False)
+
+
+class EmailDeliveryLog(Base):
+    __tablename__ = "email_delivery_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    day: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    triggered_by: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    sender: Mapped[str] = mapped_column(String(255), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    recipient_emails: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, nullable=False)

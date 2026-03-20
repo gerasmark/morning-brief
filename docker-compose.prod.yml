@@ -1,0 +1,82 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: sqlite:///./data/data.db
+    volumes:
+      - backend_data:/app/backend/data
+      - ./backend/.env:/app/backend/.env:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      NGINX_RELOAD_INTERVAL_SECONDS: ${NGINX_RELOAD_INTERVAL_SECONDS:-21600}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  certbot-renew:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    depends_on:
+      - nginx
+    environment:
+      CERTBOT_RENEW_INTERVAL_SECONDS: ${CERTBOT_RENEW_INTERVAL_SECONDS:-43200}
+    entrypoint:
+      - /bin/sh
+      - /renew-loop.sh
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+      - ./docker/certbot/renew-loop.sh:/renew-loop.sh:ro
+
+  certbot-init:
+    image: certbot/certbot:latest
+    profiles:
+      - init
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-0}
+      CERTBOT_FORCE_RENEWAL: ${CERTBOT_FORCE_RENEWAL:-0}
+    entrypoint:
+      - /bin/sh
+      - /request-cert.sh
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+      - ./docker/certbot/request-cert.sh:/request-cert.sh:ro
+
+volumes:
+  backend_data:
+  certbot_webroot:
+  letsencrypt:

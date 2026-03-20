@@ -10,7 +10,39 @@ Copy `backend/.env.example` to `backend/.env` and adjust only what you need.
 | `TIMEZONE` | `Europe/Athens` | App timezone for "today" logic and scheduler |
 | `CORS_ALLOW_ORIGINS` | `http://localhost:5173` (example) | Comma-separated CORS origins |
 | `SCHEDULE_HOUR` | `8` | Daily scheduler hour |
-| `SCHEDULE_MINUTE` | `30` | Daily scheduler minute |
+| `SCHEDULE_MINUTE` | `0` | Daily scheduler minute |
+
+Notes:
+- Relative SQLite URLs are resolved from `backend/`, so `sqlite:///./data.db` points to `backend/data.db`.
+- The CLI also reads `backend/.env`, even when you run it from the repo root.
+- The email auto-send feature runs on the same daily schedule as briefing generation.
+
+## Email Delivery
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SMTP_HOST` | empty | SMTP hostname used for delivery |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_USERNAME` | empty | SMTP login username |
+| `SMTP_PASSWORD` | empty | SMTP login password |
+| `SMTP_USE_TLS` | `true` | Enable STARTTLS for plain SMTP connections |
+| `SMTP_USE_SSL` | `false` | Use implicit TLS (`SMTP_SSL`) instead of STARTTLS |
+| `SMTP_TIMEOUT_SECONDS` | `20` | SMTP socket timeout |
+| `EMAIL_FROM_ADDRESS` | empty | Sender address shown in the email |
+| `EMAIL_FROM_NAME` | `Πρωινό Briefing` | Sender display name |
+| `RESEND_API_KEY` | empty | Resend API key for HTTPS delivery |
+| `RESEND_API_BASE_URL` | `https://api.resend.com` | Resend API base URL |
+| `RESEND_TIMEOUT_SECONDS` | `20` | HTTP timeout for Resend requests |
+| `RESEND_FROM_ADDRESS` | `onboarding@resend.dev` | Sender address used for Resend API delivery |
+
+Notes:
+- If `EMAIL_FROM_ADDRESS` is empty, the app falls back to `SMTP_USERNAME`.
+- Recipients, auto-send, and the selected transport are stored in SQLite and managed from the web Settings page.
+- `smtp` uses mail ports like `587` or `465`.
+- `resend_api` uses HTTPS on port `443`.
+- `resend_api` in this app defaults to `onboarding@resend.dev`.
+- Resend documents `resend.dev` as a testing domain and says it can only send to the email tied to your Resend account; other recipients can return `403`.
+- The app can still generate briefings even when no email transport is configured.
 
 ## LLM Provider Settings
 
