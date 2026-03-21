@@ -3,7 +3,8 @@
 This project now includes a production Docker stack for a VM deployment with:
 
 - a FastAPI backend container
-- an `nginx` container that serves the built frontend and proxies `/api`
+- a frontend container that serves the built web app
+- an `nginx` container that handles TLS and proxies requests to the frontend and backend
 - Let's Encrypt certificate bootstrap with Certbot webroot challenges
 - automatic certificate renewal in a background container
 
@@ -58,7 +59,7 @@ docker compose -f docker-compose.prod.yml restart nginx
 
 What each step does:
 
-- `up -d --build` builds the backend and frontend images, starts the app, and exposes HTTP on port `80`
+- `up -d --build` builds the backend, frontend, and proxy images, starts the app, and exposes HTTP on port `80`
 - `certbot-init` requests the first certificate for `APP_DOMAIN`
 - `restart nginx` reloads the proxy so it begins serving HTTPS with the new certificate immediately
 

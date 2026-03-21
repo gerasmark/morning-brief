@@ -7,7 +7,7 @@ Use this option when your VM already has:
 - another site already listening on `80` and `443`
 
 In this mode, Docker does not manage TLS or public ports.
-The app runs behind an internal containerized `nginx` that only binds to `127.0.0.1`.
+The app runs behind an internal containerized `nginx` that only binds to `127.0.0.1`, with a separate frontend container behind it.
 
 ## Files You Need
 
@@ -43,6 +43,7 @@ docker compose --env-file host-nginx.env -f docker-compose.host-nginx.yml up -d 
 This starts:
 
 - the FastAPI backend on the Docker network
+- the frontend container on the Docker network
 - an internal `nginx` container on `127.0.0.1:3001`
 
 The frontend is built for `/morning-brief/`, and the backend runs with `ROOT_PATH=/morning-brief` so API docs and generated URLs stay aligned with the external prefix.
