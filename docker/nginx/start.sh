@@ -2,12 +2,13 @@
 set -eu
 
 domain="${APP_DOMAIN:-}"
-if [ -z "$domain" ]; then
-  echo "APP_DOMAIN is required" >&2
-  exit 1
+server_name="_"
+cert_dir=""
+if [ -n "$domain" ]; then
+  server_name="$domain"
+  cert_dir="/etc/letsencrypt/live/$domain"
 fi
 
-cert_dir="/etc/letsencrypt/live/$domain"
 conf_path="/etc/nginx/conf.d/default.conf"
 webroot="/var/www/certbot"
 static_root="/usr/share/nginx/html"
@@ -20,7 +21,7 @@ render_http_only() {
 server {
     listen 80;
     listen [::]:80;
-    server_name $domain;
+    server_name $server_name;
 
     client_max_body_size 10m;
 
@@ -73,7 +74,7 @@ render_https() {
 server {
     listen 80;
     listen [::]:80;
-    server_name $domain;
+    server_name $server_name;
 
     location /.well-known/acme-challenge/ {
         root $webroot;
@@ -87,7 +88,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name $domain;
+    server_name $server_name;
 
     ssl_certificate $cert_dir/fullchain.pem;
     ssl_certificate_key $cert_dir/privkey.pem;
@@ -144,7 +145,7 @@ EOF
 }
 
 render_config() {
-  if [ -f "$cert_dir/fullchain.pem" ] && [ -f "$cert_dir/privkey.pem" ]; then
+  if [ -n "$domain" ] && [ -f "$cert_dir/fullchain.pem" ] && [ -f "$cert_dir/privkey.pem" ]; then
     render_https
   else
     render_http_only

@@ -1,6 +1,33 @@
 import { ArticleItem, Briefing, BriefingMeta, EmailDeliveryResult, EmailDeliverySettings, SourceItem } from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const API_BASE = resolveApiBase();
+
+function normalizeBasePath(value?: string): string {
+  if (!value || value === '/') {
+    return '/';
+  }
+
+  return `/${value.replace(/^\/+|\/+$/g, '')}`;
+}
+
+function normalizeApiBase(value: string): string {
+  const trimmed = value.replace(/\/+$/g, '');
+  return trimmed || '/';
+}
+
+function resolveApiBase(): string {
+  const explicit = import.meta.env.VITE_API_BASE;
+  if (explicit) {
+    return normalizeApiBase(explicit);
+  }
+
+  const appBasePath = normalizeBasePath(import.meta.env.VITE_APP_BASE_PATH);
+  if (appBasePath === '/') {
+    return '/api';
+  }
+
+  return `${appBasePath}/api`;
+}
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./data.db"
     timezone: str = "Europe/Athens"
+    root_path: str = ""
 
     llm_provider: str = "openai"
     llm_model: str = "gpt-4.1-mini"

@@ -73,7 +73,7 @@ async def lifespan(_: FastAPI):
     await scheduler_service.stop()
 
 
-app = FastAPI(title="Πρωινό Briefing API", lifespan=lifespan)
+app = FastAPI(title="Πρωινό Briefing API", lifespan=lifespan, root_path=settings.root_path)
 
 origins = [item.strip() for item in settings.cors_allow_origins.split(",") if item.strip()]
 if not origins:
