@@ -400,12 +400,7 @@ export default function TodayPage() {
 
           <div className="birthday-blob">
             <strong>Ποιοι γιορτάζουν σήμερα</strong>
-            {birthdays?.unavailable ? (
-              <>
-                <span>Μη διαθέσιμο</span>
-                {birthdays.error && <small>{birthdays.error}</small>}
-              </>
-            ) : birthdays?.names?.length ? (
+            {birthdays?.names?.length ? (
               <div className="birthday-list">
                 {birthdays.names.map((name) => (
                   <span key={name} className="birthday-pill">
@@ -413,9 +408,7 @@ export default function TodayPage() {
                   </span>
                 ))}
               </div>
-            ) : (
-              <span>Δεν βρέθηκαν ονόματα.</span>
-            )}
+            ) : null}
           </div>
 
           <div className="quote-blob">
