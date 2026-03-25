@@ -25,7 +25,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.ref_name }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-backend:${{ github.ref_name }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -33,7 +33,7 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.ref_name }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-frontend:${{ github.ref_name }}
           build-args: |
             VITE_APP_BASE_PATH=/
             VITE_API_BASE=/api
@@ -44,4 +44,4 @@ jobs:
           context: .
           file: ./docker/nginx/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/nginx:latest,${{ secrets.DOCKERHUB_USERNAME }}/nginx:${{ github.ref_name }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-nginx:latest,${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-nginx:${{ github.ref_name }}
