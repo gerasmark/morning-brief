@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { getEmailDeliverySettings, listSources, patchSource, updateEmailDeliverySettings } from '../api';
 import { EmailDeliverySettings, SourceItem } from '../types';
 
+type SettingsPageProps = {
+  adminUsername?: string | null;
+  onLogout?: (() => void) | null;
+};
+
 function formatSchedulerTime(hour: number, minute: number): string {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
@@ -17,7 +22,7 @@ function formatTransportLabel(transport: 'smtp' | 'resend_api'): string {
   return transport === 'resend_api' ? 'Resend API (HTTPS 443)' : 'SMTP';
 }
 
-export default function SettingsPage() {
+export default function SettingsPage({ adminUsername = null, onLogout = null }: SettingsPageProps) {
   const [sources, setSources] = useState<SourceItem[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<EmailDeliverySettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +88,14 @@ export default function SettingsPage() {
 
   return (
     <section className="page-wrap">
+      {onLogout && (
+        <div className="toolbar">
+          <span className="muted">{adminUsername ? `Admin: ${adminUsername}` : 'Admin πρόσβαση ενεργή'}</span>
+          <button className="btn" type="button" onClick={onLogout}>
+            Αποσύνδεση
+          </button>
+        </div>
+      )}
       <h1>Πηγές & Ρυθμίσεις</h1>
       <p className="muted">Οι πηγές διαχειρίζονται από εδώ, ενώ η αποστολή email μπορεί να γίνει είτε μέσω SMTP είτε μέσω HTTPS API provider.</p>
 

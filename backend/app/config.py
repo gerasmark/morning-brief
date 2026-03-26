@@ -81,6 +81,18 @@ class Settings(BaseSettings):
     resend_ca_bundle: str | None = None
     resend_allow_insecure_fallback: bool = False
 
+    auth_enabled: bool = False
+    public_app_url: str | None = None
+    session_secret_key: str = "change-me-before-production"
+    auth_session_cookie_name: str = "morning_brief_admin"
+    auth_session_max_age_seconds: int = 43200
+    auth_cookie_secure: bool = True
+    keycloak_base_url: str | None = None
+    keycloak_realm: str | None = None
+    keycloak_client_id: str | None = None
+    keycloak_client_secret: str | None = None
+    keycloak_admin_role: str = "briefing_admin"
+
     log_level: str = "INFO"
     app_log_level: str = "INFO"
     httpx_log_level: str = "WARNING"

@@ -132,3 +132,13 @@ export type EmailDeliveryResult = {
   triggered_by?: 'manual' | 'scheduled';
   reason?: string;
 };
+
+export type AuthStatus = {
+  enabled: boolean;
+  configured: boolean;
+  authenticated: boolean;
+  is_admin: boolean;
+  username?: string | null;
+  email?: string | null;
+  error?: string | null;
+};

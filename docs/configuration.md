@@ -11,11 +11,32 @@ Copy `backend/.env.example` to `backend/.env` and adjust only what you need.
 | `CORS_ALLOW_ORIGINS` | `http://localhost:5173` (example) | Comma-separated CORS origins |
 | `SCHEDULE_HOUR` | `8` | Daily scheduler hour |
 | `SCHEDULE_MINUTE` | `0` | Daily scheduler minute |
+| `PUBLIC_APP_URL` | `http://localhost:5173` | External app URL used for OIDC callback and logout redirects |
 
 Notes:
 - Relative SQLite URLs are resolved from `backend/`, so `sqlite:///./data.db` points to `backend/data.db`.
 - The CLI also reads `backend/.env`, even when you run it from the repo root.
 - The email auto-send feature runs on the same daily schedule as briefing generation.
+
+## Admin Auth / Keycloak
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AUTH_ENABLED` | `false` | Enable Keycloak-backed admin auth |
+| `SESSION_SECRET_KEY` | `change-me-before-production` | Secret used to sign the backend session cookie |
+| `AUTH_SESSION_COOKIE_NAME` | `morning_brief_admin` | Cookie name for the signed admin session |
+| `AUTH_SESSION_MAX_AGE_SECONDS` | `43200` | Admin session lifetime in seconds |
+| `AUTH_COOKIE_SECURE` | `false` in example | Mark the auth cookie as HTTPS-only |
+| `KEYCLOAK_BASE_URL` | `http://localhost:8080` | Base URL of Keycloak, for example `https://gerasmark.com/identity` |
+| `KEYCLOAK_REALM` | `morning-brief` | Keycloak realm containing your app users |
+| `KEYCLOAK_CLIENT_ID` | `morning-brief-web` | Confidential OIDC client used by the backend callback flow |
+| `KEYCLOAK_CLIENT_SECRET` | empty | Secret for the confidential Keycloak client |
+| `KEYCLOAK_ADMIN_ROLE` | `briefing_admin` | Realm role required for admin-only UI and APIs |
+
+Notes:
+- With `AUTH_ENABLED=false`, the app keeps the old local behavior and does not require Keycloak.
+- When `AUTH_ENABLED=true`, the backend protects admin APIs and the frontend hides admin controls unless the session is authenticated and has `KEYCLOAK_ADMIN_ROLE`.
+- The recommended production value for `PUBLIC_APP_URL` on this VM deployment is `https://gerasmark.com/morning-brief`.
 
 ## Email Delivery
 

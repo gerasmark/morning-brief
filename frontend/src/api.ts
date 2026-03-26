@@ -1,14 +1,7 @@
-import { ArticleItem, Briefing, BriefingMeta, EmailDeliveryResult, EmailDeliverySettings, SourceItem } from './types';
+import { APP_BASE_PATH } from './config';
+import { ArticleItem, AuthStatus, Briefing, BriefingMeta, EmailDeliveryResult, EmailDeliverySettings, SourceItem } from './types';
 
 const API_BASE = resolveApiBase();
-
-function normalizeBasePath(value?: string): string {
-  if (!value || value === '/') {
-    return '/';
-  }
-
-  return `/${value.replace(/^\/+|\/+$/g, '')}`;
-}
 
 function normalizeApiBase(value: string): string {
   const trimmed = value.replace(/\/+$/g, '');
@@ -21,7 +14,7 @@ function resolveApiBase(): string {
     return normalizeApiBase(explicit);
   }
 
-  const appBasePath = normalizeBasePath(import.meta.env.VITE_APP_BASE_PATH);
+  const appBasePath = APP_BASE_PATH;
   if (appBasePath === '/') {
     return '/api';
   }
@@ -59,6 +52,14 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return parsed as T;
+}
+
+function buildAuthRedirectUrl(path: string, nextPath?: string): string {
+  const absolute = new URL(`${API_BASE}${path}`, window.location.origin);
+  if (nextPath) {
+    absolute.searchParams.set('next', nextPath);
+  }
+  return absolute.toString();
 }
 
 export async function getTodayBriefing(): Promise<Briefing> {
@@ -147,4 +148,16 @@ export async function updateEmailDeliverySettings(payload: {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
+}
+
+export async function getAuthStatus(): Promise<AuthStatus> {
+  return fetchJson<AuthStatus>('/auth/me');
+}
+
+export function startAuthLogin(nextPath?: string): void {
+  window.location.assign(buildAuthRedirectUrl('/auth/login', nextPath));
+}
+
+export function startAuthLogout(nextPath?: string): void {
+  window.location.assign(buildAuthRedirectUrl('/auth/logout', nextPath));
 }

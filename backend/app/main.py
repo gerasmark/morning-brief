@@ -4,11 +4,27 @@ from contextlib import asynccontextmanager
 from datetime import date
 from typing import Literal
 
-from fastapi import Body, Depends, FastAPI, HTTPException, Query
+from fastapi import Body, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.sessions import SessionMiddleware
 
+from app.auth import (
+    KeycloakOIDCClient,
+    auth_config_missing,
+    auth_status_payload,
+    begin_login,
+    build_authorization_url,
+    build_callback_url,
+    build_default_home_path,
+    clear_auth_session,
+    complete_login,
+    require_admin,
+    sanitize_next_path,
+    validate_callback_state,
+)
 from app.config import get_settings
 from app.db import get_session
 from app.models import SourceType
@@ -40,6 +56,7 @@ briefing_service = BriefingService()
 email_delivery_service = EmailDeliveryService()
 ingestion_service = IngestionService()
 scheduler_service = SchedulerService(settings)
+keycloak_client = KeycloakOIDCClient()
 
 
 class SourcePatch(BaseModel):
@@ -80,6 +97,15 @@ if not origins:
     origins = ["*"]
 
 app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret_key,
+    session_cookie=settings.auth_session_cookie_name,
+    max_age=max(settings.auth_session_max_age_seconds, 300),
+    same_site="lax",
+    https_only=settings.auth_cookie_secure,
+)
+
+app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
@@ -93,8 +119,73 @@ async def health() -> dict:
     return {"ok": True}
 
 
+@app.get("/api/auth/me")
+async def get_auth_status(request: Request) -> dict:
+    return auth_status_payload(request, settings)
+
+
+@app.get("/api/auth/login")
+async def auth_login(request: Request, next: str | None = Query(default=None)) -> RedirectResponse:
+    if not settings.auth_enabled:
+        return RedirectResponse(url=sanitize_next_path(settings, next), status_code=303)
+
+    missing = auth_config_missing(settings)
+    if missing:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Το Keycloak auth είναι ενεργό αλλά λείπουν ρυθμίσεις: {', '.join(missing)}.",
+        )
+
+    state, safe_next = begin_login(request, settings, next_path=next or build_default_home_path(settings))
+    discovery = await keycloak_client.get_discovery(settings)
+    login_url = build_authorization_url(settings, discovery, state=state, next_path=safe_next)
+    return RedirectResponse(url=login_url, status_code=303)
+
+
+@app.get("/api/auth/callback")
+async def auth_callback(
+    request: Request,
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+) -> RedirectResponse:
+    if not settings.auth_enabled:
+        return RedirectResponse(url=build_default_home_path(settings), status_code=303)
+
+    if not code:
+        raise HTTPException(status_code=400, detail="Το Keycloak callback δεν περιέχει authorization code.")
+
+    validate_callback_state(request, state)
+    token_payload = await keycloak_client.exchange_code(settings, code=code, redirect_uri=build_callback_url(settings))
+    access_token = str(token_payload.get("access_token") or "").strip()
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Το Keycloak δεν επέστρεψε access token.")
+
+    claims = await keycloak_client.verify_access_token(settings, access_token)
+    next_path = complete_login(request, settings, claims)
+    return RedirectResponse(url=next_path, status_code=303)
+
+
+@app.get("/api/auth/logout")
+async def auth_logout(request: Request, next: str | None = Query(default=None)) -> RedirectResponse:
+    safe_next = sanitize_next_path(settings, next)
+    clear_auth_session(request)
+
+    if not settings.auth_enabled:
+        return RedirectResponse(url=safe_next, status_code=303)
+
+    missing = auth_config_missing(settings)
+    if missing:
+        return RedirectResponse(url=safe_next, status_code=303)
+
+    logout_url = await keycloak_client.build_logout_url(settings, next_path=safe_next)
+    return RedirectResponse(url=logout_url, status_code=303)
+
+
 @app.get("/api/sources")
-async def list_sources(session: AsyncSession = Depends(get_session)) -> list[dict]:
+async def list_sources(
+    session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
+) -> list[dict]:
     return await list_source_rows(session)
 
 
@@ -112,6 +203,7 @@ async def patch_source(
     source_id: int,
     payload: SourcePatch,
     session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
 ) -> dict:
     try:
         return await update_source(session, source_id, payload.model_dump(exclude_unset=True))
@@ -120,7 +212,10 @@ async def patch_source(
 
 
 @app.post("/api/admin/run-ingestion")
-async def run_ingestion(session: AsyncSession = Depends(get_session)) -> dict:
+async def run_ingestion(
+    session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
+) -> dict:
     return await run_ingestion_pipeline(session, settings, ingestion_service, briefing_service)
 
 
@@ -128,6 +223,7 @@ async def run_ingestion(session: AsyncSession = Depends(get_session)) -> dict:
 async def generate_briefing(
     payload: GenerateRequest | None = Body(default=None),
     session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
 ) -> dict:
     return await generate_briefing_payload(
         session,
@@ -141,6 +237,7 @@ async def generate_briefing(
 async def preview_live_strikes(
     limit: int = Query(default=200, ge=1, le=1000),
     debug: bool = Query(default=False),
+    _: object = Depends(require_admin),
 ) -> dict:
     return await fetch_live_strikes(settings, briefing_service, limit=limit, debug=debug)
 
@@ -149,6 +246,7 @@ async def preview_live_strikes(
 async def send_briefing_email(
     payload: SendBriefingEmailRequest | None = Body(default=None),
     session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
 ) -> dict:
     try:
         return await send_briefing_email_payload(
@@ -182,7 +280,10 @@ async def get_briefing(day: date, session: AsyncSession = Depends(get_session)) 
 
 
 @app.get("/api/delivery/email-settings")
-async def get_email_delivery_settings(session: AsyncSession = Depends(get_session)) -> dict:
+async def get_email_delivery_settings(
+    session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
+) -> dict:
     return await get_email_delivery_settings_payload(session, settings, email_delivery_service)
 
 
@@ -190,6 +291,7 @@ async def get_email_delivery_settings(session: AsyncSession = Depends(get_sessio
 async def update_email_delivery_settings(
     payload: EmailDeliverySettingsPatch,
     session: AsyncSession = Depends(get_session),
+    _: object = Depends(require_admin),
 ) -> dict:
     try:
         return await update_email_delivery_settings_payload(

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../auth';
 import ClusterCard from '../components/ClusterCard';
 import SourceIcon from '../components/SourceIcon';
 import { generateBriefing, getTodayBriefing, listArticles, listSources, runIngestion, sendBriefingEmail } from '../api';
@@ -95,6 +96,7 @@ function currentAthensDay(): string {
 
 export default function TodayPage() {
   const ALL_PAPERS_LABEL = 'Όλες';
+  const { canManage } = useAuth();
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +142,11 @@ export default function TodayPage() {
   }, []);
 
   useEffect(() => {
+    if (!canManage) {
+      setTopFilterSources([]);
+      return;
+    }
+
     let cancelled = false;
     void listSources()
       .then((rows) => {
@@ -161,7 +168,7 @@ export default function TodayPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canManage]);
 
   const handleRunIngestion = async () => {
     setBusyAction('ingestion');
@@ -434,15 +441,19 @@ export default function TodayPage() {
         <button className="btn" onClick={() => void load({ force: true })} disabled={loading}>
           Ανανέωση
         </button>
-        <button className="btn" onClick={handleRunIngestion} disabled={busyAction !== null}>
-          {busyAction === 'ingestion' ? 'Τρέχει...' : 'Λήψη ειδήσεων'}
-        </button>
-        <button className="btn btn-primary" onClick={handleGenerate} disabled={busyAction !== null}>
-          {busyAction === 'generate' ? 'Τρέχει...' : 'Δημιουργία σύνοψης'}
-        </button>
-        <button className="btn" onClick={handleSendEmail} disabled={busyAction !== null || loading}>
-          {busyAction === 'email' ? 'Στέλνεται...' : 'Αποστολή email'}
-        </button>
+        {canManage && (
+          <>
+            <button className="btn" onClick={handleRunIngestion} disabled={busyAction !== null}>
+              {busyAction === 'ingestion' ? 'Τρέχει...' : 'Λήψη ειδήσεων'}
+            </button>
+            <button className="btn btn-primary" onClick={handleGenerate} disabled={busyAction !== null}>
+              {busyAction === 'generate' ? 'Τρέχει...' : 'Δημιουργία σύνοψης'}
+            </button>
+            <button className="btn" onClick={handleSendEmail} disabled={busyAction !== null || loading}>
+              {busyAction === 'email' ? 'Στέλνεται...' : 'Αποστολή email'}
+            </button>
+          </>
+        )}
       </div>
 
       {loading && <p>Φόρτωση...</p>}
