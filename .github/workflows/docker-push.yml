@@ -1,14 +1,11 @@
 name: Build and Push Docker Images
-
 on:
   push:
     tags:
       - 'v*.*.*'
-
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,7 +22,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-backend:latest,${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-backend:${{ github.ref_name }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-backend:${{ github.ref_name }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -33,10 +32,13 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-frontend:latest,${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-frontend:${{ github.ref_name }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-frontend:${{ github.ref_name }}
           build-args: |
-            VITE_APP_BASE_PATH=/
-            VITE_API_BASE=/api
+            VITE_APP_BASE_PATH=${{ vars.APP_BASE_PATH }}/
+            VITE_API_BASE=${{ vars.APP_BASE_PATH }}/api
+            VITE_ADMIN_ENTRY_PATH=${{ vars.ADMIN_ENTRY_PATH }}
 
       - name: Build and push nginx image
         uses: docker/build-push-action@v5
@@ -44,4 +46,6 @@ jobs:
           context: .
           file: ./docker/nginx/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-nginx:latest,${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-nginx:${{ github.ref_name }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-nginx:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/morning-brief-nginx:${{ github.ref_name }}
