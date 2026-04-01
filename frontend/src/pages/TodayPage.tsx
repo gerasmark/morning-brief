@@ -244,6 +244,7 @@ export default function TodayPage() {
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => line.replace(/^[-*•]\s*/, '').trim())
+      .map((line) => line.replace(/\*\*(.*?)\*\*/g, '$1'))
       .filter(Boolean)
       .slice(0, 8);
   }, [briefing]);
