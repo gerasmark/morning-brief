@@ -17,6 +17,7 @@ type AuthContextValue = {
   loading: boolean;
   status: AuthStatus;
   canManage: boolean;
+  authResolved: boolean;
   refresh: () => Promise<void>;
   login: (nextPath?: string) => void;
   logout: (nextPath?: string) => void;
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         status,
         canManage: !status.enabled || status.is_admin,
+        authResolved: !loading,
         refresh,
         login: (nextPath?: string) => startAuthLogin(nextPath),
         logout: (nextPath?: string) => startAuthLogout(nextPath || PUBLIC_HOME_PATH),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, datetime, timezone
 from urllib.parse import urlparse
 
@@ -32,6 +33,8 @@ class BriefingService:
         self.birthdays_service = BirthdaysService()
         self.quote_of_day_service = QuoteOfDayService()
         self.strike_feed_service = StrikeFeedService()
+        self._payload_cache: dict[str, tuple[float, dict]] = {}
+        self._payload_cache_ttl_seconds = 300
 
     async def generate(self, session: AsyncSession, settings: Settings, day: date | None = None) -> Briefing:
         now_athens = datetime.now(settings.tzinfo)
@@ -98,10 +101,17 @@ class BriefingService:
 
         await session.commit()
         await session.refresh(briefing)
+        self._payload_cache.pop(day.isoformat(), None)
         logger.info("Briefing generation complete day=%s briefing_id=%s", day, briefing.id)
         return briefing
 
     async def get_payload(self, session: AsyncSession, settings: Settings, day: date) -> dict | None:
+        cache_key = day.isoformat()
+        cached = self._payload_cache.get(cache_key)
+        now = time.time()
+        if cached and cached[0] > now:
+            return cached[1]
+
         briefing = (await session.execute(select(Briefing).where(Briefing.day == day))).scalars().first()
         if briefing is None:
             return None
@@ -110,8 +120,9 @@ class BriefingService:
         top_summary = await fetch_daily_top_summary(session, day)
         if top_summary is None and briefing.top_cluster_ids:
             top_summary = await self._backfill_top_summary(session, settings, day, briefing.top_cluster_ids)
-        strike_items = await self._live_strike_items(settings=settings, day=day)
+
         strike_summary = await fetch_daily_strike_summary(session, day)
+        strike_items = await self._live_strike_items(settings=settings, day=day) if strike_summary else []
         if strike_summary is None and strike_items:
             strike_summary = await ensure_daily_strike_summary(
                 session=session,
@@ -119,6 +130,7 @@ class BriefingService:
                 day=day,
                 strike_items=strike_items,
             )
+
         birthdays_json = await self.birthdays_service.fetch_today(settings, day)
         quote_of_day_json = await self.quote_of_day_service.fetch_for_day(settings, day)
         logger.info(
@@ -129,7 +141,7 @@ class BriefingService:
             (quote_of_day_json or {}).get("author") or "-",
         )
 
-        return {
+        payload = {
             "id": briefing.id,
             "day": str(briefing.day),
             "created_at": briefing.created_at.isoformat() if briefing.created_at else None,
@@ -141,6 +153,8 @@ class BriefingService:
             "top_stories": top_items,
             "strikes": strike_items,
         }
+        self._payload_cache[cache_key] = (now + self._payload_cache_ttl_seconds, payload)
+        return payload
 
     async def _backfill_top_summary(
         self,

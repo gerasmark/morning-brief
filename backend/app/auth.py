@@ -230,6 +230,10 @@ def build_absolute_url(settings: Settings, path: str) -> str:
 
 
 def build_callback_url(settings: Settings) -> str:
+    public_url = (settings.public_app_url or "").rstrip("/")
+    if public_url:
+        return f"{public_url}/api/auth/callback"
+
     root_path = (settings.root_path or "").rstrip("/")
     callback_path = f"{root_path}/api/auth/callback" if root_path else "/api/auth/callback"
     return build_absolute_url(settings, callback_path)

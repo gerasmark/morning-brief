@@ -96,7 +96,7 @@ function currentAthensDay(): string {
 
 export default function TodayPage() {
   const ALL_PAPERS_LABEL = 'Όλες';
-  const { canManage } = useAuth();
+  const { canManage, authResolved } = useAuth();
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -441,7 +441,7 @@ export default function TodayPage() {
         <button className="btn" onClick={() => void load({ force: true })} disabled={loading}>
           Ανανέωση
         </button>
-        {canManage && (
+        {authResolved && canManage && (
           <>
             <button className="btn" onClick={handleRunIngestion} disabled={busyAction !== null}>
               {busyAction === 'ingestion' ? 'Τρέχει...' : 'Λήψη ειδήσεων'}
